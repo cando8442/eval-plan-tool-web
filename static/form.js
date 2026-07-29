@@ -197,32 +197,74 @@ function loadStandardsForItem(wrapper) {
     .join("");
 }
 
-// 실시간 AI 호출이 아니라 클라이언트에서 상/중/하 3단계 루브릭 "초안"을 템플릿으로
-// 만든다(이 프로젝트에는 런타임 LLM API 연동이 없음 — 콘텐츠 라이브러리도 항상
-// 대화 중 Claude가 조사해 미리 채워두는 방식). 전부 편집 가능한 input이라 교사가
-// 바로 고쳐 쓸 수 있다.
+// 실시간 AI 호출이 아니라 클라이언트에서 루브릭 "초안"을 템플릿으로 만든다(이
+// 프로젝트에는 런타임 LLM API 연동이 없음 — 콘텐츠 라이브러리도 항상 대화 중
+// Claude가 조사해 미리 채워두는 방식). 전부 편집 가능한 input이라 교사가 바로
+// 고쳐 쓸 수 있다.
+//
+// 예전엔 "영역" 하나에 상/중/하 문구만 반복해서 부실하다는 피드백을 받아, 실제
+// 채점기준표 예시(content_library의 performance_task_examples)처럼 평가 영역을
+// 지식·이해/과정·기능/참여도·태도 3갈래로 나누고, 수행평가 유형(서논술형/구술
+// 발표/실험실습 등)에 맞춰 "과정·기능" 문구를 다르게 생성하도록 개선했다.
+const RUBRIC_PROCESS_LABEL = {
+  "서논술형": "논리적인 서술 전개",
+  "구술・발표": "구술 발표의 전달력과 논리성",
+  "토의・토론": "토론 참여 및 논증의 타당성",
+  "프로젝트": "기획 및 수행 과정의 체계성",
+  "실험・실습": "절차 수행의 정확성과 관찰 기록",
+  "포트폴리오": "자료 정리 및 구성의 체계성",
+  "기타": "과제 수행 과정의 완성도",
+};
+
 function generateRubricDraft(wrapper) {
   const title = wrapper.querySelector(".pi-title").value.trim() || "수행평가";
+  const type = wrapper.querySelector(".pi-type").value;
   const totalPoints = Number(wrapper.querySelector(".pi-score").value || 10);
   const checkedUnits = Array.from(wrapper.querySelectorAll(".pi-unit-opt:checked")).map((cb) => cb.value);
-  const area = checkedUnits.length ? checkedUnits.join(", ") : title;
+  const areaLabel = checkedUnits.length ? checkedUnits.join(", ") : title;
+  const processLabel = RUBRIC_PROCESS_LABEL[type] || "과제 수행 과정의 완성도";
 
-  const rows = [
-    { scale: "상", ratio: 1, desc: `${title}을(를) 정확하고 논리적으로 수행하였다.` },
-    { scale: "중", ratio: 0.9, desc: `${title}을(를) 대체로 수행하였으나 일부 미흡하다.` },
-    { scale: "하", ratio: 0.8, desc: `${title} 수행이 미흡하다.` },
+  const domains = [
+    {
+      area: "개념 이해",
+      levels: [
+        { scale: "상", ratio: 1, desc: `"${areaLabel}"의 핵심 개념과 원리를 정확히 이해하고, "${title}"의 내용에 근거를 들어 설명할 수 있다.` },
+        { scale: "중", ratio: 0.9, desc: `"${areaLabel}"의 핵심 개념을 대체로 이해하고 있으나, 근거 제시나 설명이 일부 미흡하다.` },
+        { scale: "하", ratio: 0.8, desc: `"${areaLabel}"의 핵심 개념에 대한 이해가 부분적이며, 설명이 단편적이다.` },
+      ],
+    },
+    {
+      area: processLabel,
+      levels: [
+        { scale: "상", ratio: 1, desc: `${processLabel}이(가) 뛰어나며, "${title}"에서 요구하는 조건을 빠짐없이 충족한다.` },
+        { scale: "중", ratio: 0.9, desc: `${processLabel}이(가) 대체로 양호하나, 일부 단계에서 논리적 비약이나 누락이 있다.` },
+        { scale: "하", ratio: 0.8, desc: `${processLabel}에서 오류나 누락이 다수 발견되어 완성도가 낮다.` },
+      ],
+    },
+    {
+      area: "참여도 및 태도",
+      levels: [
+        { scale: "상", ratio: 1, desc: `수업 활동에 성실하고 적극적으로 참여하며, 정해진 기한과 형식을 준수한다.` },
+        { scale: "중", ratio: 0.9, desc: `수업 활동에 대체로 참여하나, 참여도나 형식 준수에서 일부 아쉬운 부분이 있다.` },
+        { scale: "하", ratio: 0.8, desc: `수업 활동 참여도가 낮거나, 기한·형식을 지키지 못한 경우가 있다.` },
+      ],
+    },
   ];
 
+  const domainPoints = totalPoints / domains.length;
+
   const container = wrapper.querySelector(".pi-rubric-rows");
-  container.innerHTML = rows
-    .map(
-      (r) => `
+  container.innerHTML = domains
+    .flatMap((domain) =>
+      domain.levels.map(
+        (lv) => `
       <div class="pi-rubric-row">
-        <input class="pi-rubric-area" type="text" value="${area.replace(/"/g, "&quot;")}" placeholder="영역">
-        <input class="pi-rubric-scale" type="text" value="${r.scale}" placeholder="척도">
-        <input class="pi-rubric-points" type="number" value="${Math.round(totalPoints * r.ratio * 10) / 10}" placeholder="배점">
-        <textarea class="pi-rubric-criteria" placeholder="채점기준">${r.desc}</textarea>
+        <input class="pi-rubric-area" type="text" value="${domain.area.replace(/"/g, "&quot;")}" placeholder="영역">
+        <input class="pi-rubric-scale" type="text" value="${lv.scale}" placeholder="척도">
+        <input class="pi-rubric-points" type="number" value="${Math.round(domainPoints * lv.ratio * 10) / 10}" placeholder="배점">
+        <textarea class="pi-rubric-criteria" placeholder="채점기준">${lv.desc}</textarea>
       </div>`
+      )
     )
     .join("");
 }
