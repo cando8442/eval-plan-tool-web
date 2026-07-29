@@ -909,6 +909,11 @@ function collectSimpleFieldsForDraft() {
 function restoreSimpleFields(simple) {
   form.querySelectorAll("[name]").forEach((el) => {
     if (el.type === "file") return;
+    // 저장된 초안에 이 필드 이름 자체가 없으면(예: 초안을 저장한 뒤 폼에 새로
+    // 추가된 필드) 건드리지 않는다 -- 없다고 라디오/체크박스를 강제로 체크 해제하면
+    // "교과군"처럼 나중에 추가된 라디오 그룹 전체가 아무 값도 선택 안 된 상태로
+    // 깨진다(실제로 재현된 버그).
+    if (!(el.name in simple)) return;
     const values = simple[el.name];
     if (el.type === "checkbox" || el.type === "radio") {
       el.checked = !!values && values.includes(el.value);
