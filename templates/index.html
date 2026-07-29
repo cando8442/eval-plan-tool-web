@@ -41,6 +41,18 @@
             <td><input type="number" name="grade" min="1" max="3" required></td>
           </tr>
           <tr>
+            <th>교과군</th>
+            <td>
+              <label class="inline-radio"><input type="radio" name="category" value="국어"> 국어</label>
+              <label class="inline-radio"><input type="radio" name="category" value="수학" checked> 수학</label>
+              <label class="inline-radio"><input type="radio" name="category" value="영어"> 영어</label>
+              <label class="inline-radio"><input type="radio" name="category" value="한국사"> 한국사</label>
+              <label class="inline-radio"><input type="radio" name="category" value="사회과"> 사회과</label>
+              <label class="inline-radio"><input type="radio" name="category" value="과학과"> 과학과</label>
+              <br><small>현재는 수학 교과군만 콘텐츠 라이브러리(성취기준·성취수준)가 준비돼 있습니다 — 다른 교과군은 과목명을 직접 입력할 수 있습니다.</small>
+            </td>
+          </tr>
+          <tr>
             <th>적용 교육과정</th>
             <td>
               <label class="inline-radio"><input type="radio" name="revision" value="2022" checked> 2022 개정</label>
@@ -84,7 +96,7 @@
             </td>
           </tr>
           <tr>
-            <th>성적 산출 방식<br><small>(중복 선택 가능 — hwp 표지 표에 O로 표시됩니다)</small></th>
+            <th>성적 산출 방식<br><small>(중복 선택 가능)</small></th>
             <td>
               <label class="inline-check"><input type="checkbox" name="grading_scheme" value="석차등급" checked> 석차등급(1등급-5등급)</label>
               <label class="inline-check"><input type="checkbox" name="grading_scheme" value="성취도5단계" checked> 성취도 5단계(A-B-C-D-E)</label>

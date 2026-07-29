@@ -34,10 +34,10 @@ let cachedUnitsByMonth = {};
 const subjectSelect = document.getElementById("subject-select");
 const subjectInput = form.querySelector('input[name="subject"]');
 
-async function populateSubjectSelect(revision) {
+async function populateSubjectSelect(revision, category) {
   subjectSelect.innerHTML = '<option value="">(콘텐츠 라이브러리에서 선택)</option>';
   try {
-    const resp = await fetch(`/api/subjects?revision=${encodeURIComponent(revision)}&category=${encodeURIComponent("수학")}`);
+    const resp = await fetch(`/api/subjects?revision=${encodeURIComponent(revision)}&category=${encodeURIComponent(category)}`);
     const body = await resp.json();
     const list = body.subjects || [];
     if (list.length === 0) {
@@ -65,9 +65,10 @@ subjectSelect.addEventListener("change", () => {
 
 function updateRevisionUI() {
   const revision = form.querySelector('input[name="revision"]:checked').value;
-  populateSubjectSelect(revision);
+  const category = form.querySelector('input[name="category"]:checked').value;
+  populateSubjectSelect(revision, category);
 }
-form.querySelectorAll('input[name="revision"]').forEach((el) => {
+form.querySelectorAll('input[name="revision"], input[name="category"]').forEach((el) => {
   el.addEventListener("change", updateRevisionUI);
 });
 updateRevisionUI();
@@ -427,12 +428,13 @@ function collectMonthlyPlan() {
 async function populateStandardsOptions() {
   const subject = form.querySelector('input[name="subject"]').value.trim();
   const revision = form.querySelector('input[name="revision"]:checked').value;
+  const category = form.querySelector('input[name="category"]:checked').value;
   const rows = Array.from(monthlyPlanContainer.querySelectorAll(".monthly-item"));
   if (!subject) return;
 
   try {
     const resp = await fetch(
-      `/api/reference?subject=${encodeURIComponent(subject)}&revision=${encodeURIComponent(revision)}&category=${encodeURIComponent("수학")}`
+      `/api/reference?subject=${encodeURIComponent(subject)}&revision=${encodeURIComponent(revision)}&category=${encodeURIComponent(category)}`
     );
     const body = await resp.json();
     cachedUnitsByMonth = body.units_by_month || {};
@@ -718,7 +720,7 @@ function buildPayload() {
     semester: data.get("semester"),
     subject_type: data.get("subject_type"),
     grading_scheme: data.getAll("grading_scheme"),
-    category: "수학",
+    category: data.get("category"),
     midterm: {
       selective: numOrNull(data.get("midterm_selective")),
       essay: numOrNull(data.get("midterm_essay")),
@@ -760,7 +762,7 @@ function renderReviewSummary() {
   const filledMonths = payload.units_by_month.filter((m) => m.month).length;
   reviewSummary.innerHTML = `
     <dl>
-      <dt>대상 / 과목</dt><dd>${payload.grade}학년 · ${payload.subject || "(미입력)"} · ${payload.credit}학점 (${payload.revision}개정 · ${payload.semester} · ${payload.subject_type})</dd>
+      <dt>대상 / 과목</dt><dd>${payload.grade}학년 · ${payload.category} · ${payload.subject || "(미입력)"} · ${payload.credit}학점 (${payload.revision}개정 · ${payload.semester} · ${payload.subject_type})</dd>
       <dt>작성자 / 교사명단</dt><dd>${payload.writer} / ${payload.teachers}</dd>
       <dt>지필평가 반영비율</dt><dd>중간 ${payload.midterm.ratio ?? "(미입력)"}${payload.midterm.ratio !== null ? "%" : ""} · 기말 ${payload.final.ratio ?? "(미입력)"}${payload.final.ratio !== null ? "%" : ""}</dd>
       <dt>수행평가 항목</dt><dd>${items || "(없음)"}</dd>

@@ -20,9 +20,18 @@ def test_subjects_endpoint_lists_2022_math_subjects():
     assert "공통수학2" in subjects
 
 
-def test_subjects_endpoint_returns_empty_for_2015():
+def test_subjects_endpoint_lists_2015_math_subjects():
     client = app.test_client()
     resp = client.get("/api/subjects?revision=2015&category=수학")
+    assert resp.status_code == 200
+    subjects = resp.get_json()["subjects"]
+    for name in ["기하", "미적분", "확률과통계", "인공지능수학", "수학과제탐구"]:
+        assert name in subjects
+
+
+def test_subjects_endpoint_returns_empty_for_unregistered_category():
+    client = app.test_client()
+    resp = client.get("/api/subjects?revision=2022&category=사회과")
     assert resp.status_code == 200
     assert resp.get_json()["subjects"] == []
 
