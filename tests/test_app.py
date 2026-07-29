@@ -69,7 +69,8 @@ def test_subjects_endpoint_lists_2022_social_studies_subjects():
     subjects = resp.get_json()["subjects"]
     for name in [
         "통합사회1", "통합사회2", "사회와 문화", "세계시민과 지리",
-        "현대사회와 윤리", "세계사",
+        "현대사회와 윤리", "세계사", "정치", "법과 사회", "경제",
+        "윤리와 사상", "한국지리 탐구", "사회문제 탐구", "윤리문제 탐구",
     ]:
         assert name in subjects
 
