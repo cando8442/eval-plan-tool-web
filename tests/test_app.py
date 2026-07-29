@@ -29,6 +29,18 @@ def test_subjects_endpoint_lists_2015_math_subjects():
         assert name in subjects
 
 
+def test_subjects_endpoint_lists_2022_korean_subjects():
+    client = app.test_client()
+    resp = client.get("/api/subjects?revision=2022&category=국어")
+    assert resp.status_code == 200
+    subjects = resp.get_json()["subjects"]
+    for name in [
+        "공통국어1", "공통국어2", "화법과언어", "독서와 작문",
+        "문학", "문학과 영상", "주제 탐구 독서", "독서 토론과 글쓰기",
+    ]:
+        assert name in subjects
+
+
 def test_subjects_endpoint_returns_empty_for_unregistered_category():
     client = app.test_client()
     resp = client.get("/api/subjects?revision=2022&category=사회과")
