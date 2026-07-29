@@ -109,7 +109,14 @@ function addPerformanceItem() {
       <input class="pi-ratio" type="number" placeholder="반영비율(%)">
       <input class="pi-base-score" type="number" placeholder="기본점수">
       <textarea class="pi-title" placeholder="수행평가 명 — 주제/내용+방법이 드러나게 작성 (예: 소설 작품의 인물에 대해 비평하기)"></textarea>
-      <textarea class="pi-task" placeholder="평가 과제 — 구체적인 수행 내용/방법을 입력"></textarea>
+
+      <div class="mp-field-group">
+        <div class="mp-field-label">
+          평가 과제
+          <button type="button" class="pi-format-task-btn secondary-btn">과제 문구 다듬기</button>
+        </div>
+        <textarea class="pi-task" placeholder="평가 과제 — 대충 써도 됩니다. &quot;과제 문구 다듬기&quot;를 누르면 항목별 문구(◦)로 정리되고, 없으면 &quot;수업 시간에 작성하여 제출한다&quot;가 자동으로 추가됩니다."></textarea>
+      </div>
 
       <div class="mp-field-group">
         <div class="mp-field-label">단원명 <small>(과목명 입력 후 2단계에 진입하면 후보가 채워집니다, 복수 선택 가능)</small></div>
@@ -139,6 +146,7 @@ function addPerformanceItem() {
   });
   wrapper.querySelector(".pi-load-standards-btn").addEventListener("click", () => loadStandardsForItem(wrapper));
   wrapper.querySelector(".pi-generate-rubric-btn").addEventListener("click", () => generateRubricDraft(wrapper));
+  wrapper.querySelector(".pi-format-task-btn").addEventListener("click", () => formatTaskDraft(wrapper));
   performanceContainer.appendChild(wrapper);
   renderPerformanceUnitOptions(wrapper);
   updateAddButtonState();
@@ -215,6 +223,40 @@ const RUBRIC_PROCESS_LABEL = {
   "포트폴리오": "자료 정리 및 구성의 체계성",
   "기타": "과제 수행 과정의 완성도",
 };
+
+// 공식 문서의 "평가 과제" 문구는 항상 "◦ ..." 항목별 나열이고, 마지막 항목은 거의
+// 항상 언제/어떻게 제출하는지(예: "수업 시간에 작성하여 제출한다")로 끝난다
+// (content_library의 performance_task_examples 실제 예시 패턴). 대충 한 줄로
+// 써넣은 걸 그 형태로 다듬어준다 — 클라이언트 템플릿 변환일 뿐 AI 호출은 아니다.
+const TASK_SUBMISSION_LINE = "수업 시간에 작성하여 제출한다.";
+
+function formatTaskDraft(wrapper) {
+  const textarea = wrapper.querySelector(".pi-task");
+  const raw = textarea.value.trim();
+  if (!raw) return;
+
+  // 이미 줄바꿈으로 항목이 나뉘어 있으면(한 번 다듬은 걸 다시 누른 경우 포함)
+  // 그 줄 구조를 존중하고, 앞에 붙어있던 기호(◦/•/-/*)만 제거해 중복을 막는다.
+  let lines = raw
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^[◦•\-*\s]+/, "").trim())
+    .filter(Boolean);
+
+  // 줄바꿈 없이 한 문단으로만 써넣은 경우엔 문장 단위(마침표/물음표/느낌표 뒤)로 쪼갠다.
+  if (lines.length <= 1) {
+    lines = raw
+      .split(/(?<=[.?!])\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  const hasSubmissionLine = lines.some((line) => line.includes("제출") && (line.includes("수업") || line.includes("시간")));
+  if (!hasSubmissionLine) {
+    lines.push(TASK_SUBMISSION_LINE);
+  }
+
+  textarea.value = lines.map((line) => `◦ ${/[.!?]$/.test(line) ? line : line + "."}`).join("\n");
+}
 
 function generateRubricDraft(wrapper) {
   const title = wrapper.querySelector(".pi-title").value.trim() || "수행평가";
