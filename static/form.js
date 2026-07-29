@@ -463,6 +463,8 @@ async function populateStandardsOptions() {
 
     // 수행평가 항목 카드의 단원명 체크박스도 같은 데이터로 갱신한다.
     performanceContainer.querySelectorAll(".performance-item").forEach((wrapper) => renderPerformanceUnitOptions(wrapper));
+    // 임시저장에서 복원 중이었다면, 방금 막 생긴 체크박스들에 저장해둔 체크 상태를 마저 적용한다.
+    applyPendingDraftChecks();
   } catch (err) {
     rows.forEach((row) => {
       row.querySelector(".mp-standards-options").innerHTML =
@@ -768,7 +770,7 @@ function renderReviewSummary() {
   `;
 }
 
-function showStep(step) {
+function showStep(step, options = {}) {
   currentStep = step;
   wizardPanes.forEach((pane) => {
     pane.hidden = Number(pane.dataset.step) !== step;
@@ -783,7 +785,10 @@ function showStep(step) {
   wizardSubmitBtn.classList.toggle("hidden", step !== TOTAL_STEPS);
   if (step === 2) {
     updateSemesterDateDefaults();
-    populateStandardsOptions();
+    // 임시저장 복원 중에는 loadDraftIfPresent()가 이미 populateStandardsOptions()를
+    // 직접 호출해 단원명/성취기준 체크 상태까지 복원해 둔 상태다 — 여기서 다시
+    // 부르면 체크박스 목록을 새로 그리면서 방금 복원한 체크 상태를 지워버린다.
+    if (!options.skipRefetch) populateStandardsOptions();
   }
   if (step === TOTAL_STEPS) renderReviewSummary();
 }
@@ -876,3 +881,263 @@ async function copyDocPreview() {
 }
 
 copyDocBtn.addEventListener("click", copyDocPreview);
+
+// ---- 임시 저장(자동 저장) ----
+// 작성 중간에 탭을 닫거나 실수로 새로고침해도 처음부터 다시 쓰지 않도록, 이
+// 브라우저(localStorage)에만 남는 임시 초안을 계속 저장해두고 페이지를 열 때
+// 자동으로 되살린다. 서버에는 전혀 전송되지 않는다 — "새로 작성하기" 버튼을
+// 직접 눌러야만 지워진다.
+const DRAFT_KEY = "evalPlanToolDraft_v1";
+const draftStatusEl = document.getElementById("draft-status");
+const clearDraftBtn = document.getElementById("clear-draft-btn");
+let draftSaveTimer = null;
+let restoringDraft = false;
+
+function collectSimpleFieldsForDraft() {
+  const out = {};
+  form.querySelectorAll("[name]").forEach((el) => {
+    if (el.type === "file") return; // File 객체는 JSON으로 저장할 수 없고, 다시 골라야 하니 저장할 이유도 없다.
+    if ((el.type === "checkbox" || el.type === "radio") && !el.checked) return;
+    if (!out[el.name]) out[el.name] = [];
+    out[el.name].push(el.value);
+  });
+  return out;
+}
+
+function restoreSimpleFields(simple) {
+  form.querySelectorAll("[name]").forEach((el) => {
+    if (el.type === "file") return;
+    const values = simple[el.name];
+    if (el.type === "checkbox" || el.type === "radio") {
+      el.checked = !!values && values.includes(el.value);
+      return;
+    }
+    if (values && values.length) el.value = values[0];
+  });
+}
+
+function performanceItemToDraft(item) {
+  return {
+    type: item.querySelector(".pi-type").value,
+    month: item.querySelector(".pi-month").value,
+    score: item.querySelector(".pi-score").value,
+    ratio: item.querySelector(".pi-ratio").value,
+    baseScore: item.querySelector(".pi-base-score").value,
+    title: item.querySelector(".pi-title").value,
+    task: item.querySelector(".pi-task").value,
+    units: Array.from(item.querySelectorAll(".pi-unit-opt:checked")).map((cb) => cb.value),
+    standards: Array.from(item.querySelectorAll(".pi-standards-opt:checked")).map((cb) => cb.value),
+    rubric: Array.from(item.querySelectorAll(".pi-rubric-row")).map((row) => ({
+      area: row.querySelector(".pi-rubric-area").value,
+      scale: row.querySelector(".pi-rubric-scale").value,
+      points: row.querySelector(".pi-rubric-points").value,
+      criteria: row.querySelector(".pi-rubric-criteria").value,
+    })),
+  };
+}
+
+function restorePerformanceItem(wrapper, data) {
+  wrapper.querySelector(".pi-type").value = data.type || "서논술형";
+  wrapper.querySelector(".pi-month").value = data.month || "";
+  wrapper.querySelector(".pi-score").value = data.score || "";
+  wrapper.querySelector(".pi-ratio").value = data.ratio || "";
+  wrapper.querySelector(".pi-base-score").value = data.baseScore || "";
+  wrapper.querySelector(".pi-title").value = data.title || "";
+  wrapper.querySelector(".pi-task").value = data.task || "";
+
+  if (data.rubric && data.rubric.length) {
+    wrapper.querySelector(".pi-rubric-rows").innerHTML = data.rubric
+      .map(
+        (r) => `
+      <div class="pi-rubric-row">
+        <input class="pi-rubric-area" type="text" value="${(r.area || "").replace(/"/g, "&quot;")}" placeholder="영역">
+        <input class="pi-rubric-scale" type="text" value="${(r.scale || "").replace(/"/g, "&quot;")}" placeholder="척도">
+        <input class="pi-rubric-points" type="number" value="${r.points || ""}" placeholder="배점">
+        <textarea class="pi-rubric-criteria" placeholder="채점기준">${r.criteria || ""}</textarea>
+      </div>`
+      )
+      .join("");
+  }
+
+  // 단원명/성취기준 체크박스는 콘텐츠 라이브러리 옵션이 채워진 뒤에만 존재하므로,
+  // 값은 일단 dataset에 보류해두고 populateStandardsOptions() 완료 시 마저 체크한다.
+  wrapper.dataset.draftPendingUnits = JSON.stringify(data.units || []);
+  wrapper.dataset.draftPendingStandards = JSON.stringify(data.standards || []);
+}
+
+function monthlyRowToDraft(row) {
+  return {
+    month: row.querySelector(".mp-month").value,
+    weeksLabel: row.querySelector(".mp-weeks-label").value,
+    hours: row.querySelector(".mp-hours").value,
+    unit: row.querySelector(".mp-unit").value,
+    standards: Array.from(row.querySelectorAll(".mp-standards-opt:checked")).map((cb) => cb.value),
+    standardsOther: row.querySelector(".mp-standards-other").value,
+    method: Array.from(row.querySelectorAll(".mp-method-opt:checked")).map((cb) => cb.value),
+    methodOther: row.querySelector(".mp-method-other").value,
+    evalOpt: Array.from(row.querySelectorAll(".mp-eval-opt:checked")).map((cb) => cb.value),
+    evalOther: row.querySelector(".mp-eval-other").value,
+    sel: row.querySelector(".mp-sel").value,
+  };
+}
+
+function restoreMonthlyRow(row, data) {
+  row.querySelector(".mp-month").value = data.month || "";
+  row.querySelector(".mp-weeks-label").value = data.weeksLabel || "";
+  row.querySelector(".mp-hours").value = data.hours || "";
+  row.querySelector(".mp-unit").value = data.unit || "";
+  row.querySelector(".mp-standards-other").value = data.standardsOther || "";
+  row.querySelector(".mp-method-other").value = data.methodOther || "";
+  row.querySelector(".mp-eval-other").value = data.evalOther || "";
+  row.querySelector(".mp-sel").value = data.sel || "";
+
+  // 수업방법/평가방법 체크박스는 고정 목록이라 이미 존재 — 바로 체크할 수 있다.
+  (data.method || []).forEach((v) => {
+    const cb = row.querySelector(`.mp-method-opt[value="${CSS.escape(v)}"]`);
+    if (cb) cb.checked = true;
+  });
+  (data.evalOpt || []).forEach((v) => {
+    const cb = row.querySelector(`.mp-eval-opt[value="${CSS.escape(v)}"]`);
+    if (cb) cb.checked = true;
+  });
+
+  // 성취기준 체크박스는 콘텐츠 라이브러리에서 나중에 채워지므로 보류해둔다.
+  row.dataset.draftPendingStandards = JSON.stringify(data.standards || []);
+}
+
+// populateStandardsOptions()가 단원명/성취기준 체크박스 옵션을 실제로 채운 직후
+// 호출된다 — 그 전까지는 restorePerformanceItem/restoreMonthlyRow가 dataset에
+// 남겨둔 "체크했어야 할 값" 목록을 마저 적용한다.
+function applyPendingDraftChecks() {
+  monthlyPlanContainer.querySelectorAll(".monthly-item").forEach((row) => {
+    const pending = row.dataset.draftPendingStandards;
+    if (!pending) return;
+    JSON.parse(pending).forEach((v) => {
+      const cb = row.querySelector(`.mp-standards-opt[value="${CSS.escape(v)}"]`);
+      if (cb) cb.checked = true;
+    });
+    delete row.dataset.draftPendingStandards;
+  });
+
+  performanceContainer.querySelectorAll(".performance-item").forEach((wrapper) => {
+    const pendingUnitsRaw = wrapper.dataset.draftPendingUnits;
+    const pendingStandardsRaw = wrapper.dataset.draftPendingStandards;
+    if (!pendingUnitsRaw && !pendingStandardsRaw) return;
+    const units = pendingUnitsRaw ? JSON.parse(pendingUnitsRaw) : [];
+    const standards = pendingStandardsRaw ? JSON.parse(pendingStandardsRaw) : [];
+    units.forEach((v) => {
+      const cb = wrapper.querySelector(`.pi-unit-opt[value="${CSS.escape(v)}"]`);
+      if (cb) cb.checked = true;
+    });
+    if (standards.length) {
+      // "불러오기"와 같은 로직으로 성취기준 옵션을 채운 뒤(전부 기본 체크된 채로 생성됨),
+      // 실제로 저장돼 있던 목록만 남기고 나머지는 해제한다.
+      loadStandardsForItem(wrapper);
+      wrapper.querySelectorAll(".pi-standards-opt").forEach((cb) => {
+        cb.checked = standards.includes(cb.value);
+      });
+    }
+    delete wrapper.dataset.draftPendingUnits;
+    delete wrapper.dataset.draftPendingStandards;
+  });
+}
+
+function updateDraftStatusLabel(hasDraft) {
+  clearDraftBtn.classList.toggle("hidden", !hasDraft);
+  if (!hasDraft) {
+    draftStatusEl.textContent = "";
+    return;
+  }
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  draftStatusEl.textContent = `이 브라우저에 임시저장됨 · ${hh}:${mm}`;
+}
+
+function saveDraft() {
+  if (restoringDraft) return; // 복원 중에 발생하는 input/change 이벤트로 되저장되는 것을 막는다.
+  try {
+    const draft = {
+      version: 1,
+      step: currentStep,
+      simple: collectSimpleFieldsForDraft(),
+      performanceItems: Array.from(performanceContainer.querySelectorAll(".performance-item")).map(performanceItemToDraft),
+      monthlyRows: Array.from(monthlyPlanContainer.querySelectorAll(".monthly-item")).map(monthlyRowToDraft),
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    updateDraftStatusLabel(true);
+  } catch (err) {
+    // localStorage 용량 초과 등은 조용히 무시한다 — 임시저장은 부가 기능이라, 저장
+    // 실패가 정작 작성 중인 입력 자체를 막으면 안 된다.
+  }
+}
+
+function scheduleDraftSave() {
+  if (restoringDraft) return;
+  clearTimeout(draftSaveTimer);
+  draftSaveTimer = setTimeout(saveDraft, 500);
+}
+
+form.addEventListener("input", scheduleDraftSave);
+form.addEventListener("change", scheduleDraftSave);
+
+async function loadDraftIfPresent() {
+  let raw;
+  try {
+    raw = localStorage.getItem(DRAFT_KEY);
+  } catch (err) {
+    return;
+  }
+  if (!raw) return;
+
+  let draft;
+  try {
+    draft = JSON.parse(raw);
+  } catch (err) {
+    localStorage.removeItem(DRAFT_KEY);
+    return;
+  }
+
+  restoringDraft = true;
+  try {
+    // 기본으로 미리 만들어둔 카드 수와 저장된 개수가 다를 수 있으니 전부 지우고
+    // 저장된 개수만큼만 다시 만든다.
+    performanceContainer.innerHTML = "";
+    performanceItemCount = 0;
+    const savedItems = draft.performanceItems || [];
+    const itemCount = Math.min(savedItems.length || DEFAULT_PERFORMANCE_ITEMS, MAX_PERFORMANCE_ITEMS);
+    for (let i = 0; i < itemCount; i += 1) addPerformanceItem();
+
+    restoreSimpleFields(draft.simple || {});
+    updateGradingMethodUI();
+
+    const itemWrappers = performanceContainer.querySelectorAll(".performance-item");
+    savedItems.forEach((data, idx) => {
+      if (itemWrappers[idx]) restorePerformanceItem(itemWrappers[idx], data);
+    });
+
+    const rows = monthlyPlanContainer.querySelectorAll(".monthly-item");
+    (draft.monthlyRows || []).forEach((data, idx) => {
+      if (rows[idx]) restoreMonthlyRow(rows[idx], data);
+    });
+
+    // 과목명이 있으면 콘텐츠 라이브러리 옵션을 미리 받아와 방금 보류해둔 단원명/
+    // 성취기준 체크 상태를 마저 적용한다(populateStandardsOptions 끝에서 처리됨).
+    await populateStandardsOptions();
+
+    showStep(draft.step && draft.step >= 1 && draft.step <= TOTAL_STEPS ? draft.step : 1, { skipRefetch: true });
+    updateDraftStatusLabel(true);
+    showResult("이전에 작성하던 내용을 자동으로 불러왔습니다. 새로 작성하려면 위의 \"새로 작성하기\" 버튼을 누르세요.", "ok");
+  } finally {
+    restoringDraft = false;
+  }
+}
+
+clearDraftBtn.addEventListener("click", () => {
+  if (!confirm("작성 중인 내용을 모두 지우고 새로 작성하시겠습니까? 이 브라우저에 저장된 임시본이 삭제됩니다.")) return;
+  localStorage.removeItem(DRAFT_KEY);
+  location.reload();
+});
+
+updateDraftStatusLabel(false);
+loadDraftIfPresent();
