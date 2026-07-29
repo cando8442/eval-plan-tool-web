@@ -83,6 +83,7 @@ def test_subjects_endpoint_lists_2022_science_subjects():
     for name in [
         "통합과학1", "통합과학2", "물리학", "화학", "생명과학", "지구과학",
         "역학과 에너지", "물질과 에너지", "세포와 물질대사", "행성우주과학",
+        "전자기와 양자", "화학 반응의 세계", "생물의 유전", "지구시스템과학",
     ]:
         assert name in subjects
 
