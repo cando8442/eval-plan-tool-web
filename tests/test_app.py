@@ -67,8 +67,11 @@ def test_subjects_endpoint_lists_2022_social_studies_subjects():
     resp = client.get("/api/subjects?revision=2022&category=사회과")
     assert resp.status_code == 200
     subjects = resp.get_json()["subjects"]
-    assert "통합사회1" in subjects
-    assert "통합사회2" in subjects
+    for name in [
+        "통합사회1", "통합사회2", "사회와 문화", "세계시민과 지리",
+        "현대사회와 윤리", "세계사",
+    ]:
+        assert name in subjects
 
 
 def test_subjects_endpoint_lists_2022_science_subjects():
