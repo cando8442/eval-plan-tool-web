@@ -1,16 +1,20 @@
-# 평가계획서 자동 생성 도구 (eval_plan_tool)
+# 평가계획서 자동 생성 도구 — 웹 공유판 (eval_plan_tool_web)
 
-학교 교무부 양식에 따라 매 학기 과목별로 제출해야 하는 두 문서 — 교수학습 및 평가계획서, 평가계획표(.xlsx) — 를 브라우저 폼에 한 번 입력하는 것으로 준비하는 웹 도구입니다.
+`eval_plan_tool`(로컬 hwp 자동생성판)에서 갈라져 나온 프로젝트입니다. 학교 교무부 양식에 따라 매 학기 과목별로 제출해야 하는 두 문서 — 교수학습 및 평가계획서, 평가계획표(.xlsx) — 를 브라우저 폼에 한 번 입력하는 것으로 준비하는 웹 도구입니다.
 
 - **평가계획서**: hwp 파일을 직접 생성하지 않습니다. 대신 폼 입력값 + 콘텐츠 라이브러리 내용을 사람이 읽기 좋은 HTML(제목/표/목록)로 화면에 보여주고, "구글독스용 내용 복사" 버튼으로 클립보드에 복사해 구글독스 등 원하는 문서에 직접 붙여넣도록 합니다(`doc_text_renderer.py`의 `render_plan_html`).
-- **.xlsx**: openpyxl로 템플릿(`templates_src/base_planning_table.xlsx`)의 지정된 셀에 폼 데이터를 그대로 써서 저장하고, `/api/download/<filename>`으로 다운로드합니다.
+- **.xlsx**: openpyxl로 템플릿(`templates_src/base_planning_table.xlsx`)의 지정된 셀에 폼 데이터를 그대로 써서 저장하고, `/api/download/<request_id>/<filename>`으로 다운로드합니다(요청마다 무작위 `request_id` 하위 디렉터리를 써서, 로그인 없는 공개 배포에서도 다른 사용자가 파일명을 추측해 남의 결과물을 열람할 수 없습니다).
 
-과거에는 pyhwpx(한글 COM 자동화)로 실제 .hwp/.docx 파일을 생성했으나, 이 방식은 한글(HWP) 프로그램이 설치된 개인 PC에서만 동작해 웹앱으로 공유할 수 없었습니다. 그래서 hwp 자동 생성 기능은 제거하고, 복사-붙여넣기 기반으로 전환했습니다.
+`eval_plan_tool`은 pyhwpx(한글 COM 자동화)로 실제 .hwp/.docx 파일을 생성했으나, 이 방식은 한글(HWP) 프로그램이 설치된 개인 PC에서만 동작해 웹앱으로 공유할 수 없었습니다. 이 갈래는 hwp 자동 생성 기능을 제거하고, 복사-붙여넣기 + 웹 배포 기반으로 전환한 버전입니다.
 
 ## 요구 사항
 
-- `requirements.txt` 기준 Python venv (Flask, openpyxl, pytest)
-- 학사일정 파일 업로드(`/api/calendar/upload`) 기능은 여전히 hwp 형식의 학사일정표를 입력으로 받아 `hwp5proc`로 파싱합니다 — 이 부분만 hwp5proc 실행 파일이 필요합니다(생성이 아니라 파싱 용도).
+- `requirements.txt` 기준 Python venv (Flask, openpyxl, pyhwp, gunicorn, pytest)
+- 학사일정 파일 업로드(`/api/calendar/upload`) 기능은 여전히 hwp 형식의 학사일정표를 입력으로 받아 `hwp5proc`(pip 패키지 `pyhwp`가 제공, 실제 한글 프로그램은 필요 없는 순수 파이썬 구현)로 파싱합니다.
+
+## 배포 (Render)
+
+저장소 루트의 `render.yaml`을 그대로 사용합니다 — Render 대시보드에서 "New +" → "Blueprint"로 이 GitHub 저장소를 연결하면 빌드(`pip install -r requirements.txt`)/시작(`gunicorn app:app`) 커맨드가 자동으로 적용됩니다. 별도 데이터베이스나 영속 디스크는 필요 없습니다(생성 파일은 임시 디렉터리에 요청 단위로만 존재). 필요하면 `EVAL_PLAN_OUTPUT_DIR` 환경변수로 출력 디렉터리를, `HWP5PROC_PATH`로 `hwp5proc` 실행 경로를 덮어쓸 수 있습니다.
 
 ## 실행 방법
 

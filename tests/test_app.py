@@ -48,11 +48,11 @@ def test_generate_endpoint_creates_xlsx_and_doc_preview(tmp_path, monkeypatch):
     resp = client.post("/api/generate", json=payload)
     assert resp.status_code == 200
     data = resp.get_json()
-    xlsx_path = os.path.join(str(tmp_path), data["xlsx_filename"])
-    assert os.path.isfile(xlsx_path)
+    relative_path = data["xlsx_download_url"].removeprefix("/api/download/")
+    assert os.path.isfile(os.path.join(str(tmp_path), *relative_path.split("/")))
     assert data["warnings"] == []
     assert "단원별 핵심 개념 구조화를 통해 단계별 문제 해결하기" in data["doc_html"]
-    assert data["xlsx_download_url"] == f"/api/download/{data['xlsx_filename']}"
+    assert data["xlsx_download_url"].endswith(f"/{data['xlsx_filename']}")
 
 
 def test_download_endpoint_serves_generated_xlsx(tmp_path, monkeypatch):
@@ -76,6 +76,17 @@ def test_download_endpoint_serves_generated_xlsx(tmp_path, monkeypatch):
     download_resp = client.get(data["xlsx_download_url"])
     assert download_resp.status_code == 200
     assert download_resp.mimetype == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def test_download_endpoint_rejects_non_uuid_request_id(tmp_path, monkeypatch):
+    """request_id는 항상 uuid4().hex로만 만들어지므로, 그 형식이 아닌 값(경로 순회 시도
+    포함)은 파일 존재 여부와 무관하게 404여야 한다 — 공개 배포 환경에서 다른 사용자의
+    출력 디렉터리를 추측/순회해 접근하지 못하도록 막는 방어선이다."""
+    monkeypatch.setattr("app.OUTPUT_DIR", str(tmp_path))
+    client = app.test_client()
+
+    resp = client.get("/api/download/../secrets/whatever.xlsx")
+    assert resp.status_code == 404
 
 
 def test_generate_endpoint_warns_when_subject_not_in_content_library(tmp_path, monkeypatch):
@@ -102,8 +113,8 @@ def test_generate_endpoint_warns_when_subject_not_in_content_library(tmp_path, m
     resp = client.post("/api/generate", json=payload)
     assert resp.status_code == 200
     data = resp.get_json()
-    xlsx_path = os.path.join(str(tmp_path), data["xlsx_filename"])
-    assert os.path.isfile(xlsx_path)
+    relative_path = data["xlsx_download_url"].removeprefix("/api/download/")
+    assert os.path.isfile(os.path.join(str(tmp_path), *relative_path.split("/")))
     assert any("콘텐츠 라이브러리에 없습니다" in w for w in data["warnings"])
 
 
