@@ -1,0 +1,222 @@
+<!-- templates/index.html -->
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>평가계획서 생성기</title>
+  <link rel="stylesheet" href="/static/form.css">
+</head>
+<body>
+  <main class="sheet">
+    <header class="doc-head">
+      <span class="kicker">교 무 부 제 출 서 식</span>
+      <h1>교수학습 및 평가 계획서 생성기</h1>
+      <span class="subtitle">2026학년도 · 평가계획서(복사용 미리보기)·평가계획표(xlsx) 초안 자동 생성 도구</span>
+    </header>
+
+    <div class="doc-meta">
+      <span>문서번호 : 평가-2026-AUTO</span>
+      <span>서식 v0.3 (MVP · 위저드)</span>
+    </div>
+
+    <ol class="wizard-steps" id="wizard-steps">
+      <li data-step="1" class="active">기본정보</li>
+      <li data-step="2">학사일정</li>
+      <li data-step="3">반영비율</li>
+      <li data-step="4">수행평가 성취평가</li>
+      <li data-step="5">확인·생성</li>
+    </ol>
+
+    <form id="plan-form">
+      <section class="doc-section wizard-pane" data-step="1">
+        <h2>Ⅰ. 기본 정보</h2>
+        <table class="form-grid">
+          <tr>
+            <th>대상 학년</th>
+            <td><input type="number" name="grade" min="1" max="3" required></td>
+          </tr>
+          <tr>
+            <th>적용 교육과정</th>
+            <td>
+              <label class="inline-radio"><input type="radio" name="revision" value="2022" checked> 2022 개정</label>
+              <label class="inline-radio"><input type="radio" name="revision" value="2015"> 2015 개정</label>
+            </td>
+          </tr>
+          <tr>
+            <th>과목명</th>
+            <td>
+              <div class="subject-picker">
+                <select id="subject-select"><option value="">(콘텐츠 라이브러리에서 선택)</option></select>
+                <input type="text" name="subject" placeholder="예) 공통수학1" required>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <th>학점(단위)</th>
+            <td><input type="number" name="credit" min="1" required></td>
+          </tr>
+          <tr>
+            <th>작성자</th>
+            <td><input type="text" name="writer" placeholder="본인 성명" required></td>
+          </tr>
+          <tr>
+            <th>과목담당 전체교사명단</th>
+            <td><input type="text" name="teachers" placeholder="예) 김은상, 장재욱, 정요한" required></td>
+          </tr>
+          <tr>
+            <th>학기</th>
+            <td>
+              <label class="inline-radio"><input type="radio" name="semester" value="1학기" checked> 1학기</label>
+              <label class="inline-radio"><input type="radio" name="semester" value="2학기"> 2학기</label>
+            </td>
+          </tr>
+          <tr>
+            <th>과목 유형</th>
+            <td>
+              <label class="inline-radio"><input type="radio" name="subject_type" value="공통과목" checked> 공통과목</label>
+              <label class="inline-radio"><input type="radio" name="subject_type" value="일반선택"> 일반선택</label>
+              <label class="inline-radio"><input type="radio" name="subject_type" value="진로선택과목"> 진로선택과목</label>
+            </td>
+          </tr>
+          <tr>
+            <th>성적 산출 방식<br><small>(중복 선택 가능 — hwp 표지 표에 O로 표시됩니다)</small></th>
+            <td>
+              <label class="inline-check"><input type="checkbox" name="grading_scheme" value="석차등급" checked> 석차등급(1등급-5등급)</label>
+              <label class="inline-check"><input type="checkbox" name="grading_scheme" value="성취도5단계" checked> 성취도 5단계(A-B-C-D-E)</label>
+              <label class="inline-check"><input type="checkbox" name="grading_scheme" value="성취도3단계"> 성취도 3단계(A-B-C)</label>
+              <label class="inline-check"><input type="checkbox" name="grading_scheme" value="이수여부"> 이수여부(P/F)</label>
+              <label class="inline-check"><input type="checkbox" name="grading_scheme" value="기타"> 기타</label>
+            </td>
+          </tr>
+        </table>
+      </section>
+
+      <section class="doc-section wizard-pane" data-step="2" hidden>
+        <h2>Ⅱ. 학사일정</h2>
+        <table class="form-grid">
+          <tr>
+            <th>학기 시작일</th>
+            <td><input type="date" name="semester_start" required></td>
+          </tr>
+          <tr>
+            <th>학기 종료일</th>
+            <td><input type="date" name="semester_end" required></td>
+          </tr>
+          <tr>
+            <th>수업 요일</th>
+            <td>
+              <label class="inline-check"><input type="checkbox" name="weekday" value="0"> 월</label>
+              <label class="inline-check"><input type="checkbox" name="weekday" value="1"> 화</label>
+              <label class="inline-check"><input type="checkbox" name="weekday" value="2"> 수</label>
+              <label class="inline-check"><input type="checkbox" name="weekday" value="3"> 목</label>
+              <label class="inline-check"><input type="checkbox" name="weekday" value="4"> 금</label>
+            </td>
+          </tr>
+          <tr>
+            <th>학사일정 파일<br><small>(한글, 선택)</small></th>
+            <td>
+              <input type="file" id="calendar-file" name="calendar" accept=".hwp">
+              <button type="button" id="calendar-analyze-btn" class="secondary-btn">학사일정 분석</button>
+              <div id="calendar-dropzone">여기로 파일을 끌어다 놓아도 됩니다 (드래그 앤 드롭)</div>
+            </td>
+          </tr>
+        </table>
+        <div id="calendar-candidates"></div>
+        <div id="calendar-result"></div>
+
+        <div class="subsection-head">
+          <span>월별 교수학습 운영 계획 <small>(선택 — hwp 표는 물리적으로 5개 월 + 중간·기말고사 표시행으로 고정되어 있어 최대 5개 월만 입력 가능합니다. 비워두면 예시 원문이 그대로 남습니다.)</small></span>
+        </div>
+        <div id="monthly-plan-rows"></div>
+      </section>
+
+      <section class="doc-section wizard-pane" data-step="3" hidden>
+        <h2>Ⅲ. 평가 영역 및 반영 비율</h2>
+        <table class="form-grid">
+          <tr>
+            <th colspan="2">지필평가</th>
+          </tr>
+          <tr>
+            <th>중간고사<br><small>선택형/서논술형/단답형(점) · 반영비율(%) — 선택, 비워두면 hwp는 예시 원문 유지</small></th>
+            <td class="ratio-row">
+              <input type="number" name="midterm_selective" placeholder="선택형">
+              <input type="number" name="midterm_essay" placeholder="서논술형">
+              <input type="number" name="midterm_short" placeholder="단답형">
+              <input type="number" name="midterm_ratio" placeholder="반영비율%">
+            </td>
+          </tr>
+          <tr>
+            <th>기말고사<br><small>선택형/서논술형/단답형(점) · 반영비율(%) — 선택, 비워두면 hwp는 예시 원문 유지</small></th>
+            <td class="ratio-row">
+              <input type="number" name="final_selective" placeholder="선택형">
+              <input type="number" name="final_essay" placeholder="서논술형">
+              <input type="number" name="final_short" placeholder="단답형">
+              <input type="number" name="final_ratio" placeholder="반영비율%">
+            </td>
+          </tr>
+        </table>
+
+        <div class="subsection-head">
+          <span>수행평가 (기본 4칸, 최대 5개 — 비워두면 그 항목은 무시됩니다)</span>
+          <button type="button" id="add-performance-btn" class="secondary-btn">+ 항목 추가</button>
+        </div>
+        <div id="performance-items"></div>
+      </section>
+
+      <section class="doc-section wizard-pane" data-step="4" hidden>
+        <h2>Ⅳ. 성취평가 방식 및 분할점수</h2>
+        <table class="form-grid">
+          <tr>
+            <th>성취평가 방식</th>
+            <td>
+              <label class="inline-radio"><input type="radio" name="grading_method" value="추정분할" checked> 추정분할</label>
+              <label class="inline-radio"><input type="radio" name="grading_method" value="고정분할"> 고정분할</label>
+            </td>
+          </tr>
+          <tr id="split-score-row">
+            <th>분할점수<br><small>A/B · B/C · C/D · D/E · E/I (참고 예시: 39·38·37·36·35)</small></th>
+            <td class="ratio-row">
+              <input type="number" name="split_ab" placeholder="A/B">
+              <input type="number" name="split_bc" placeholder="B/C">
+              <input type="number" name="split_cd" placeholder="C/D">
+              <input type="number" name="split_de" placeholder="D/E">
+              <input type="number" name="split_ei" placeholder="E/I">
+            </td>
+          </tr>
+        </table>
+      </section>
+
+      <section class="doc-section wizard-pane" data-step="5" hidden>
+        <h2>Ⅴ. 확인 및 생성</h2>
+        <div id="review-summary" class="review-summary"></div>
+        <p class="notice">
+          <strong>※ 안내</strong> — 본 도구는 초안 생성용입니다. "생성" 후 아래에 표시되는 내용을 복사해
+          구글독스 등 원하는 문서에 직접 붙여넣어 다듬어주세요. 반영비율이 반영된 엑셀(.xlsx) 파일은 따로
+          다운로드할 수 있습니다. 실제 제출 전 반드시 내용을 검토·수정하시기 바랍니다.
+          콘텐츠 라이브러리에 없는 과목명을 입력하면 서술형 항목이 비어 있으니 직접 작성해주세요.
+          월별 교수학습 운영 계획은 2단계(학사일정)에서 최대 5개 월까지 입력할 수 있습니다.
+        </p>
+      </section>
+
+      <div class="wizard-nav">
+        <button type="button" id="wizard-prev-btn" class="secondary-btn" disabled>← 이전</button>
+        <button type="button" id="wizard-next-btn">다음 →</button>
+        <button type="submit" id="wizard-submit-btn" class="hidden">문 서 생 성</button>
+      </div>
+    </form>
+
+    <div id="result"></div>
+
+    <div id="doc-preview-wrapper" class="hidden">
+      <div class="doc-preview-actions">
+        <button type="button" id="copy-doc-btn">구글독스용 내용 복사</button>
+        <a id="xlsx-download-link" class="secondary-btn" href="#" download>엑셀 다운로드</a>
+        <span id="copy-status"></span>
+      </div>
+      <div id="doc-preview"></div>
+    </div>
+  </main>
+
+  <script src="/static/form.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "subject": "테스트과목",
+  "revision": "2022",
+  "track": "공통과목",
+  "eval_purpose": ["가. 테스트 목적"],
+  "eval_direction": ["가. 테스트 방향"]
+}

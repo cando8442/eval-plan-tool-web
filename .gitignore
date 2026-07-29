@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+.venv/
+평가계획서_출력/
+*.egg-info/
