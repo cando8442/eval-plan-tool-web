@@ -62,9 +62,18 @@ def test_subjects_endpoint_lists_2022_korean_history_subjects():
     assert "한국사2" in subjects
 
 
-def test_subjects_endpoint_returns_empty_for_unregistered_category():
+def test_subjects_endpoint_lists_2022_social_studies_subjects():
     client = app.test_client()
     resp = client.get("/api/subjects?revision=2022&category=사회과")
+    assert resp.status_code == 200
+    subjects = resp.get_json()["subjects"]
+    assert "통합사회1" in subjects
+    assert "통합사회2" in subjects
+
+
+def test_subjects_endpoint_returns_empty_for_unregistered_category():
+    client = app.test_client()
+    resp = client.get("/api/subjects?revision=2022&category=과학과")
     assert resp.status_code == 200
     assert resp.get_json()["subjects"] == []
 
