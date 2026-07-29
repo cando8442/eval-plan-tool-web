@@ -79,8 +79,10 @@ def test_subjects_endpoint_lists_2022_science_subjects():
     resp = client.get("/api/subjects?revision=2022&category=과학과")
     assert resp.status_code == 200
     subjects = resp.get_json()["subjects"]
-    assert "통합과학1" in subjects
-    assert "통합과학2" in subjects
+    for name in [
+        "통합과학1", "통합과학2", "물리학", "화학", "생명과학", "지구과학",
+    ]:
+        assert name in subjects
 
 
 def test_subjects_endpoint_returns_empty_for_unregistered_category():
