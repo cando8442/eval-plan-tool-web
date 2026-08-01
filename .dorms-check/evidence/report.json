@@ -1,9 +1,43 @@
 {
-  "at": "2026-08-01T09:35:45.431Z",
-  "url": "https://eval-plan-tool.onrender.com",
-  "results": [
+  "schemaVersion": 1,
+  "tool": {
+    "name": "dorms-check",
+    "version": "0.1.0"
+  },
+  "generatedAt": "2026-08-01T09:36:02.571Z",
+  "app": {
+    "name": "평가계획서 자동생성 도구",
+    "url": "https://eval-plan-tool.onrender.com",
+    "stack": "Unknown / 범용",
+    "tracks": [
+      "security",
+      "edzip"
+    ],
+    "edzipCase": "A"
+  },
+  "teacher": {
+    "dormsHandle": null
+  },
+  "tracks": {
+    "security": {
+      "claimed": true,
+      "score": 100,
+      "grade": "A+",
+      "eligible": true
+    },
+    "edzip": {
+      "claimed": true,
+      "eligible": true,
+      "policyPresent": true
+    }
+  },
+  "items": [
     {
       "id": "sec.header.csp",
+      "track": "security",
+      "severity": "high",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "content-security-policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
       "evidence": {
@@ -14,6 +48,10 @@
     },
     {
       "id": "sec.header.hsts",
+      "track": "security",
+      "severity": "medium",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "strict-transport-security: max-age=63072000; includeSubDomains",
       "evidence": {
@@ -24,6 +62,10 @@
     },
     {
       "id": "sec.header.frame",
+      "track": "security",
+      "severity": "medium",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "x-frame-options: DENY",
       "evidence": {
@@ -34,6 +76,10 @@
     },
     {
       "id": "sec.header.nosniff",
+      "track": "security",
+      "severity": "low",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "x-content-type-options: nosniff",
       "evidence": {
@@ -44,6 +90,10 @@
     },
     {
       "id": "sec.header.referrer",
+      "track": "security",
+      "severity": "low",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "referrer-policy: strict-origin-when-cross-origin",
       "evidence": {
@@ -54,6 +104,10 @@
     },
     {
       "id": "sec.header.permissions",
+      "track": "security",
+      "severity": "low",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "permissions-policy: camera=(), microphone=(), geolocation=()",
       "evidence": {
@@ -64,6 +118,10 @@
     },
     {
       "id": "sec.fingerprint.powered-by",
+      "track": "security",
+      "severity": "info",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "x-powered-by 미노출(양호)",
       "evidence": {
@@ -73,6 +131,10 @@
     },
     {
       "id": "sec.transport.https-redirect",
+      "track": "security",
+      "severity": "high",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "HTTP 요청이 HTTPS로 리다이렉트됨 (HTTP 301 -> https://eval-plan-tool.onrender.com/)",
       "evidence": {
@@ -82,6 +144,10 @@
     },
     {
       "id": "sec.transport.ssl-valid",
+      "track": "security",
+      "severity": "critical",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "TLS 연결 성공 (TLSv1.3)",
       "evidence": {
@@ -92,6 +158,10 @@
     },
     {
       "id": "sec.transport.old-tls",
+      "track": "security",
+      "severity": "medium",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "TLS 버전 양호: TLSv1.3",
       "evidence": {
@@ -100,12 +170,20 @@
     },
     {
       "id": "sec.transport.cookie-flags",
+      "track": "security",
+      "severity": "medium",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "na",
       "observed": "응답에 쿠키 없음",
       "evidence": {}
     },
     {
       "id": "info.secret-exposed",
+      "track": "security",
+      "severity": "critical",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "민감 파일(.env/.git) 노출 없음",
       "evidence": {
@@ -141,6 +219,10 @@
     },
     {
       "id": "info.config-exposed",
+      "track": "security",
+      "severity": "medium",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "설정 파일 비노출",
       "evidence": {
@@ -149,6 +231,10 @@
     },
     {
       "id": "info.source-map",
+      "track": "security",
+      "severity": "low",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "소스맵 참조 없음",
       "evidence": {
@@ -157,6 +243,10 @@
     },
     {
       "id": "info.stack-trace",
+      "track": "security",
+      "severity": "medium",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "스택트레이스 노출 없음",
       "evidence": {
@@ -165,6 +255,10 @@
     },
     {
       "id": "info.mixed-content",
+      "track": "security",
+      "severity": "low",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "mixed content 없음",
       "evidence": {
@@ -173,6 +267,10 @@
     },
     {
       "id": "cors.policy",
+      "track": "security",
+      "severity": "high",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "CORS가 임의 Origin을 허용하지 않음(양호)",
       "evidence": {
@@ -184,36 +282,60 @@
     },
     {
       "id": "seo.title",
+      "track": "security",
+      "severity": "info",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "<title> 있음",
       "evidence": {}
     },
     {
       "id": "seo.description",
+      "track": "security",
+      "severity": "info",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "설명 메타",
       "evidence": {}
     },
     {
       "id": "seo.viewport",
+      "track": "security",
+      "severity": "info",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "viewport 메타",
       "evidence": {}
     },
     {
       "id": "seo.og",
+      "track": "security",
+      "severity": "info",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "Open Graph 태그",
       "evidence": {}
     },
     {
       "id": "seo.canonical",
+      "track": "security",
+      "severity": "info",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "info",
       "observed": "canonical 링크",
       "evidence": {}
     },
     {
       "id": "perf.ttfb",
+      "track": "security",
+      "severity": "info",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "응답 시간 247ms",
       "evidence": {
@@ -222,6 +344,10 @@
     },
     {
       "id": "perf.page-size",
+      "track": "security",
+      "severity": "info",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "문서 크기 12KB",
       "evidence": {
@@ -230,6 +356,10 @@
     },
     {
       "id": "perf.compression",
+      "track": "security",
+      "severity": "info",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "압축: br",
       "evidence": {
@@ -238,6 +368,10 @@
     },
     {
       "id": "legal.privacy-policy",
+      "track": "security",
+      "severity": "high",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "개인정보처리방침 발견(link: /privacy)",
       "evidence": {
@@ -248,6 +382,10 @@
     },
     {
       "id": "legal.terms",
+      "track": "security",
+      "severity": "low",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "info",
       "observed": "이용약관 페이지/링크 없음",
       "evidence": {
@@ -256,6 +394,10 @@
     },
     {
       "id": "legal.contact",
+      "track": "security",
+      "severity": "low",
+      "method": "deterministic",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "연락처/문의 정보 있음",
       "evidence": {
@@ -264,6 +406,10 @@
     },
     {
       "id": "code.rls.anon-read",
+      "track": "security",
+      "severity": "critical",
+      "method": "ai",
+      "serverVerifiable": true,
       "status": "na",
       "observed": "Supabase 공개 자격을 앱에서 찾지 못함(비-Supabase 앱이거나 자격 비노출) — RLS 실측 생략",
       "evidence": {
@@ -273,12 +419,20 @@
     },
     {
       "id": "code.firebase.public-read",
+      "track": "security",
+      "severity": "critical",
+      "method": "ai",
+      "serverVerifiable": true,
       "status": "na",
       "observed": "Firebase 실시간 DB 주소를 앱에서 찾지 못함(비-Firebase 앱이거나 미사용) — 프로브 생략",
       "evidence": {}
     },
     {
       "id": "code.endpoint.unauth",
+      "track": "security",
+      "severity": "high",
+      "method": "ai",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "미인증 호출로 데이터를 반환하는 API 후보 없음",
       "evidence": {
@@ -292,6 +446,10 @@
     },
     {
       "id": "code.hardcoded-secret",
+      "track": "security",
+      "severity": "critical",
+      "method": "ai",
+      "serverVerifiable": false,
       "status": "na",
       "observed": ".venv/Lib/site-packages/cryptography/hazmat/primitives/serialization/ssh.py:78 — 서드파티 cryptography 라이브러리 소스의 PEM 마커 상수(_SK_START = b\"-----BEGIN OPENSSH PRIVATE KEY-----\"), 실제 키 아님. .gitignore:3에 .venv/ 등록되어 git 미추적(git ls-files 확인, 커밋 0건), render.yaml은 pip install -r requirements.txt로 자체 venv를 새로 만들어 배포하므로 이 파일 자체가 배포물에 포함되지 않음. 오탐 확인.",
       "evidence": {
@@ -312,6 +470,10 @@
     },
     {
       "id": "code.client-secret-leak",
+      "track": "security",
+      "severity": "critical",
+      "method": "ai",
+      "serverVerifiable": false,
       "status": "pass",
       "observed": "클라 시크릿 노출 미검출",
       "evidence": {
@@ -320,6 +482,10 @@
     },
     {
       "id": "code.headers-config",
+      "track": "security",
+      "severity": "info",
+      "method": "ai",
+      "serverVerifiable": false,
       "status": "pass",
       "observed": "app.py의 set_security_headers()(@app.after_request, 25~40행 부근)에서 Content-Security-Policy/Strict-Transport-Security/X-Frame-Options/X-Content-Type-Options/Referrer-Policy/Permissions-Policy 6종을 모든 응답에 설정. 재배포 후 실측(curl -sI https://eval-plan-tool.onrender.com/)으로 두 헤더 값이 코드와 일치함을 확인, rescan 결과 sec.header.* 전부 pass로 전환됨(보안 100/100).",
       "evidence": {
@@ -335,6 +501,10 @@
     },
     {
       "id": "code.dangerous-pattern",
+      "track": "security",
+      "severity": "info",
+      "method": "ai",
+      "serverVerifiable": false,
       "status": "pass",
       "observed": "static/form.js 내 innerHTML 19건 전수 검토: 4건(werkzeug/debug/shared/debugger.js)은 .venv 벤더 코드로 배포/앱 코드 범위 밖. 앱 코드 19건 중 라이브러리 상수·개발자 통제 콘텐츠(subjects/*.json)만 삽입하던 곳은 원래도 안전. 사용자 자유입력값(과목명/작성자/수행평가명/업로드 학사일정 라벨)을 이스케이프 없이 삽입하던 실제 XSS 지점 4곳을 escapeHtml() 헬퍼로 수정: form.js renderReviewSummary()(구 763행 부근, 과목/작성자/교사명단/수행평가 항목), populateStandardsOptions() 후보없음 메시지(구 451행, subject), analyzeCalendarFile() 학사일정 후보 렌더링(구 587행, e.month/e.day/e.label/e.category — 업로드 파일에서 추출되어 여러 교사 간 공유 가능성 있음), generateRubricDraft()(구 283~305행, 수행평가명 title이 <textarea>...</textarea> innerHTML로 삽입되던 것). 서버측 doc_text_renderer.py는 이미 html.escape 기반 _esc()로 모든 사용자 입력을 이스케이프(코드 확인: 22행 _esc 정의, 모든 f-string 삽입지점에 적용).",
       "evidence": {
@@ -465,6 +635,10 @@
     },
     {
       "id": "edzip.1-1",
+      "track": "edzip",
+      "severity": "high",
+      "method": "hybrid",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "templates/index.html 폼 필드 전수 확인(grep name=\") 결과 입력 항목은 작성자 성명(writer)·담당교사(teachers)·과목/학년/학기 등 교사 자신의 업무정보뿐, 학생 이름/학번/연락처 입력란 자체가 존재하지 않음. privacy.html 제2조에 수집항목을 그대로 명시.",
       "evidence": {
@@ -478,6 +652,10 @@
     },
     {
       "id": "edzip.1-2",
+      "track": "edzip",
+      "severity": "high",
+      "method": "hybrid",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "templates/privacy.html 제3조 — 입력받은 성명을 계획서 표지 표기 목적으로만 사용한다고 명시.",
       "evidence": {
@@ -491,6 +669,10 @@
     },
     {
       "id": "edzip.1-3",
+      "track": "edzip",
+      "severity": "high",
+      "method": "hybrid",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "app.py:88-93 calendar_upload()에서 학사일정 원본파일을 파싱 직후 os.remove로 즉시 삭제(기존 구현). app.py의 신규 _cleanup_old_outputs()(OUTPUT_RETENTION_SECONDS=24h)를 /api/generate 진입 시 호출해 24시간 지난 생성 결과 디렉터리를 자동 삭제하도록 신규 구현. templates/privacy.html 제4조에 두 보유기간을 그대로 명시.",
       "evidence": {
@@ -504,6 +686,10 @@
     },
     {
       "id": "edzip.2-1",
+      "track": "edzip",
+      "severity": "critical",
+      "method": "hybrid",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "app.py의 set_security_headers()(after_request)에서 CSP/HSTS/X-Frame-Options/X-Content-Type-Options/Referrer-Policy/Permissions-Policy 전 응답 적용(신규). HTTPS 강제·TLS1.3은 기존 scan.json sec.transport.* 항목에서 이미 pass 확인됨. 다운로드 경로가 request_id(uuid4 hex)+파일명 기반이라 추측 불가(app.py _REQUEST_ID_RE 검증). templates/privacy.html 제9조에 조치 내역 명시.",
       "evidence": {
@@ -517,6 +703,10 @@
     },
     {
       "id": "edzip.3-1",
+      "track": "edzip",
+      "severity": "high",
+      "method": "hybrid",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "templates/privacy.html 제7조 — 열람/정정/삭제/처리정지 절차와 제10조 연락처(cando8442@seoulsejong.sen.go.kr), 10일 이내 처리 명시.",
       "evidence": {
@@ -530,6 +720,10 @@
     },
     {
       "id": "edzip.4-1",
+      "track": "edzip",
+      "severity": "critical",
+      "method": "ai",
+      "serverVerifiable": false,
       "status": "na",
       "observed": "edzipCase=A(dorms-check.config.json) — 3문항 실사용자 응답(학생 식별정보 미입력/미저장/파일 내 미포함, 전부 '아니오') 및 코드 실측(폼 필드에 학생 관련 입력란 없음) 결과 앱이 학생 개인정보 자체를 다루지 않아 만 14세 미만 아동 보호 조항이 적용될 대상 데이터가 없음. templates/privacy.html 제8조에 '해당 사항 없음, 이용대상은 교사로 한정'을 명시.",
       "evidence": {
@@ -543,6 +737,10 @@
     },
     {
       "id": "edzip.5-1",
+      "track": "edzip",
+      "severity": "medium",
+      "method": "hybrid",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "templates/privacy.html 제10조 — 개인정보 보호책임자(역할명: 평가계획서 자동생성 도구 운영자/담당교사) 및 연락처 cando8442@seoulsejong.sen.go.kr 명시, 분쟁조정위원회/신고센터 안내 포함.",
       "evidence": {
@@ -556,6 +754,10 @@
     },
     {
       "id": "edzip.5-2",
+      "track": "edzip",
+      "severity": "high",
+      "method": "hybrid",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "app.py 전수 grep(requests./urllib/httpx/openai/api./fetch() 등 외부 호출 패턴) 결과 0건 — 서버 코드에 제3자로 데이터를 전송하는 로직이 없음. templates/privacy.html 제5조에 '제3자에게 제공하지 않는다'고 명시.",
       "evidence": {
@@ -569,6 +771,10 @@
     },
     {
       "id": "edzip.5-3",
+      "track": "edzip",
+      "severity": "high",
+      "method": "hybrid",
+      "serverVerifiable": true,
       "status": "pass",
       "observed": "render.yaml(runtime: python, gunicorn app:app) 기준 호스팅사는 Render, scan.json raw.observedHeaders의 server=cloudflare로 Cloudflare 프록시 확인. templates/privacy.html 제6조에 두 수탁사(호스팅/CDN)와 해외서버 이전 사실을 명시.",
       "evidence": {
@@ -581,31 +787,49 @@
       }
     }
   ],
-  "raw": {
-    "url": "https://eval-plan-tool.onrender.com",
-    "finalUrl": "https://eval-plan-tool.onrender.com/",
-    "httpStatus": 200,
-    "ttfbMs": 247,
-    "observedHeaders": [
-      "alt-svc",
-      "cf-cache-status",
-      "cf-ray",
-      "connection",
-      "content-encoding",
-      "content-length",
-      "content-security-policy",
-      "content-type",
-      "date",
-      "permissions-policy",
-      "referrer-policy",
-      "rndr-id",
-      "server",
-      "strict-transport-security",
-      "vary",
-      "x-content-type-options",
-      "x-frame-options",
-      "x-render-origin-server"
+  "reverifyHints": {
+    "revalidate": [
+      "sec.header.csp",
+      "sec.header.hsts",
+      "sec.header.frame",
+      "sec.header.nosniff",
+      "sec.header.referrer",
+      "sec.header.permissions",
+      "sec.fingerprint.powered-by",
+      "sec.transport.https-redirect",
+      "sec.transport.ssl-valid",
+      "sec.transport.old-tls",
+      "sec.transport.cookie-flags",
+      "info.secret-exposed",
+      "info.config-exposed",
+      "info.source-map",
+      "info.stack-trace",
+      "info.mixed-content",
+      "cors.policy",
+      "seo.title",
+      "seo.description",
+      "seo.viewport",
+      "seo.og",
+      "seo.canonical",
+      "perf.ttfb",
+      "perf.page-size",
+      "perf.compression",
+      "legal.privacy-policy",
+      "legal.terms",
+      "legal.contact",
+      "code.rls.anon-read",
+      "code.firebase.public-read",
+      "code.endpoint.unauth",
+      "edzip.1-1",
+      "edzip.1-2",
+      "edzip.1-3",
+      "edzip.2-1",
+      "edzip.3-1",
+      "edzip.5-1",
+      "edzip.5-2",
+      "edzip.5-3"
     ],
-    "scannedAt": "2026-08-01T09:35:42.299Z"
-  }
+    "note": "서버는 이 항목을 앱 URL 로 독립 재스캔해 대조한다. 불일치 시 발급 거부. 나머지(code.hardcoded-secret 등)는 자기신고로 투명 표기."
+  },
+  "manifestSha256": "b7d468af3af4789f016b9c40bace6861e1cfb7731f3d7c4555649c93a6a92b5f"
 }

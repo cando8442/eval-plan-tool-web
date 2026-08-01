@@ -64,5 +64,11 @@
     "evidence": "render.yaml(runtime: python, gunicorn app:app) 기준 호스팅사는 Render, scan.json raw.observedHeaders의 server=cloudflare로 Cloudflare 프록시 확인. templates/privacy.html 제6조에 두 수탁사(호스팅/CDN)와 해외서버 이전 사실을 명시.",
     "by": "teacher-assistant",
     "at": "2026-08-01T09:30:15.688Z"
+  },
+  "code.headers-config": {
+    "status": "pass",
+    "evidence": "app.py의 set_security_headers()(@app.after_request, 25~40행 부근)에서 Content-Security-Policy/Strict-Transport-Security/X-Frame-Options/X-Content-Type-Options/Referrer-Policy/Permissions-Policy 6종을 모든 응답에 설정. 재배포 후 실측(curl -sI https://eval-plan-tool.onrender.com/)으로 두 헤더 값이 코드와 일치함을 확인, rescan 결과 sec.header.* 전부 pass로 전환됨(보안 100/100).",
+    "by": "teacher-assistant",
+    "at": "2026-08-01T09:35:35.358Z"
   }
 }

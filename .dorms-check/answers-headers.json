@@ -1,0 +1,6 @@
+{
+  "code.headers-config": {
+    "status": "pass",
+    "evidence": "app.py의 set_security_headers()(@app.after_request, 25~40행 부근)에서 Content-Security-Policy/Strict-Transport-Security/X-Frame-Options/X-Content-Type-Options/Referrer-Policy/Permissions-Policy 6종을 모든 응답에 설정. 재배포 후 실측(curl -sI https://eval-plan-tool.onrender.com/)으로 두 헤더 값이 코드와 일치함을 확인, rescan 결과 sec.header.* 전부 pass로 전환됨(보안 100/100)."
+  }
+}
