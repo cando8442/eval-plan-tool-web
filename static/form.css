@@ -707,3 +707,16 @@ small {
   color: var(--muted);
   margin: 10px 0 4px;
 }
+
+.site-footer {
+  max-width: 900px;
+  margin: 24px auto 12px;
+  padding: 0 16px;
+  font-size: 12px;
+  color: var(--muted, #777);
+  text-align: center;
+}
+
+.site-footer a {
+  color: inherit;
+}

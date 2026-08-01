@@ -20,6 +20,15 @@ const copyDocBtn = document.getElementById("copy-doc-btn");
 const copyStatus = document.getElementById("copy-status");
 const xlsxDownloadLink = document.getElementById("xlsx-download-link");
 
+// 사용자 입력값(과목명/작성자/업로드 학사일정 라벨 등)을 innerHTML에 꽂기 전
+// HTML로 해석되지 않도록 이스케이프한다 — 서버 쪽 doc_text_renderer.py의
+// _esc()와 같은 역할.
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[ch]));
+}
+
 const MAX_PERFORMANCE_ITEMS = 5;
 const DEFAULT_PERFORMANCE_ITEMS = 4;
 let performanceItemCount = 0;
@@ -264,14 +273,19 @@ function generateRubricDraft(wrapper) {
   const type = wrapper.querySelector(".pi-type").value;
   const totalPoints = Number(wrapper.querySelector(".pi-score").value || 10);
   const checkedUnits = Array.from(wrapper.querySelectorAll(".pi-unit-opt:checked")).map((cb) => cb.value);
-  const areaLabel = checkedUnits.length ? checkedUnits.join(", ") : title;
+  const areaLabelRaw = checkedUnits.length ? checkedUnits.join(", ") : title;
+  // desc 문자열은 나중에 <textarea>...</textarea>로 그대로 innerHTML에 꽂히므로,
+  // 자유 입력값(수행평가 명·단원명)에 </textarea>나 태그가 섞여 있어도 HTML로
+  // 해석되지 않도록 여기서 미리 이스케이프해둔다.
+  const areaLabel = escapeHtml(areaLabelRaw);
+  const titleEsc = escapeHtml(title);
   const processLabel = RUBRIC_PROCESS_LABEL[type] || "과제 수행 과정의 완성도";
 
   const domains = [
     {
       area: "개념 이해",
       levels: [
-        { scale: "상", ratio: 1, desc: `"${areaLabel}"의 핵심 개념과 원리를 정확히 이해하고, "${title}"의 내용에 근거를 들어 설명할 수 있다.` },
+        { scale: "상", ratio: 1, desc: `"${areaLabel}"의 핵심 개념과 원리를 정확히 이해하고, "${titleEsc}"의 내용에 근거를 들어 설명할 수 있다.` },
         { scale: "중", ratio: 0.9, desc: `"${areaLabel}"의 핵심 개념을 대체로 이해하고 있으나, 근거 제시나 설명이 일부 미흡하다.` },
         { scale: "하", ratio: 0.8, desc: `"${areaLabel}"의 핵심 개념에 대한 이해가 부분적이며, 설명이 단편적이다.` },
       ],
@@ -279,7 +293,7 @@ function generateRubricDraft(wrapper) {
     {
       area: processLabel,
       levels: [
-        { scale: "상", ratio: 1, desc: `${processLabel}이(가) 뛰어나며, "${title}"에서 요구하는 조건을 빠짐없이 충족한다.` },
+        { scale: "상", ratio: 1, desc: `${processLabel}이(가) 뛰어나며, "${titleEsc}"에서 요구하는 조건을 빠짐없이 충족한다.` },
         { scale: "중", ratio: 0.9, desc: `${processLabel}이(가) 대체로 양호하나, 일부 단계에서 논리적 비약이나 누락이 있다.` },
         { scale: "하", ratio: 0.8, desc: `${processLabel}에서 오류나 누락이 다수 발견되어 완성도가 낮다.` },
       ],
@@ -448,7 +462,7 @@ async function populateStandardsOptions() {
       const info = libMonth !== undefined ? cachedUnitsByMonth[libMonth] || cachedUnitsByMonth[String(libMonth)] : null;
       const standards = info && info.standards ? info.standards : [];
       if (standards.length === 0) {
-        container.innerHTML = `<small>'${subject}'의 ${idx + 1}번째 월에 해당하는 성취기준 후보가 없습니다 — 기타(직접입력)를 사용해주세요.</small>`;
+        container.innerHTML = `<small>'${escapeHtml(subject)}'의 ${idx + 1}번째 월에 해당하는 성취기준 후보가 없습니다 — 기타(직접입력)를 사용해주세요.</small>`;
         return;
       }
       container.innerHTML =
@@ -584,7 +598,7 @@ async function analyzeCalendarFile(file) {
           .map((e, idx) => {
             const checked = e.category !== "NOTE" ? "checked" : "";
             return `<label><input type="checkbox" class="cal-event" data-idx="${idx}" ${checked}>
-              ${e.month}월 ${e.day}일 — ${e.label} (${e.category})</label>`;
+              ${escapeHtml(e.month)}월 ${escapeHtml(e.day)}일 — ${escapeHtml(e.label)} (${escapeHtml(e.category)})</label>`;
           })
           .join("");
       calendarAnalyzeBtn.dataset.events = JSON.stringify(events);
@@ -757,16 +771,16 @@ function validateStep(step) {
 function renderReviewSummary() {
   const payload = buildPayload();
   const items = payload.performance_items
-    .map((item, idx) => `${idx + 1}. [${item.type}] ${item.title || "(제목 미입력)"} — ${item.month}월, ${item.ratio}%`)
+    .map((item, idx) => `${idx + 1}. [${escapeHtml(item.type)}] ${escapeHtml(item.title) || "(제목 미입력)"} — ${escapeHtml(item.month)}월, ${escapeHtml(item.ratio)}%`)
     .join("<br>");
   const filledMonths = payload.units_by_month.filter((m) => m.month).length;
   reviewSummary.innerHTML = `
     <dl>
-      <dt>대상 / 과목</dt><dd>${payload.grade}학년 · ${payload.category} · ${payload.subject || "(미입력)"} · ${payload.credit}학점 (${payload.revision}개정 · ${payload.semester} · ${payload.subject_type})</dd>
-      <dt>작성자 / 교사명단</dt><dd>${payload.writer} / ${payload.teachers}</dd>
+      <dt>대상 / 과목</dt><dd>${escapeHtml(payload.grade)}학년 · ${escapeHtml(payload.category)} · ${escapeHtml(payload.subject) || "(미입력)"} · ${escapeHtml(payload.credit)}학점 (${escapeHtml(payload.revision)}개정 · ${escapeHtml(payload.semester)} · ${escapeHtml(payload.subject_type)})</dd>
+      <dt>작성자 / 교사명단</dt><dd>${escapeHtml(payload.writer)} / ${escapeHtml(payload.teachers)}</dd>
       <dt>지필평가 반영비율</dt><dd>중간 ${payload.midterm.ratio ?? "(미입력)"}${payload.midterm.ratio !== null ? "%" : ""} · 기말 ${payload.final.ratio ?? "(미입력)"}${payload.final.ratio !== null ? "%" : ""}</dd>
       <dt>수행평가 항목</dt><dd>${items || "(없음)"}</dd>
-      <dt>성취평가 방식</dt><dd>${payload.grading_method}</dd>
+      <dt>성취평가 방식</dt><dd>${escapeHtml(payload.grading_method)}</dd>
       <dt>월별 계획</dt><dd>${filledMonths}/${MAX_MONTHLY_ROWS}개 월 입력됨${filledMonths < MAX_MONTHLY_ROWS ? " (나머지는 예시 원문 유지)" : ""}</dd>
     </dl>
   `;

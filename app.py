@@ -1,6 +1,8 @@
 import os
 import re
+import shutil
 import tempfile
+import time
 import uuid
 
 from flask import Flask, jsonify, render_template, request, send_from_directory
@@ -19,6 +21,48 @@ app = Flask(__name__)
 # 동작하지 않는다.
 OUTPUT_DIR = os.environ.get("EVAL_PLAN_OUTPUT_DIR", os.path.join(tempfile.gettempdir(), "eval_plan_tool_output"))
 _REQUEST_ID_RE = re.compile(r"^[0-9a-f]{32}$")
+OUTPUT_RETENTION_SECONDS = 24 * 60 * 60  # 개인정보처리방침 제4조와 동일한 보관기간(24시간)
+
+
+def _cleanup_old_outputs():
+    """
+    생성된 xlsx(작성자 성명 등 포함)를 서버 디스크에 무기한 남기지 않도록,
+    보관기간(24시간)이 지난 요청 디렉터리를 정리한다. 별도 백그라운드
+    스케줄러 없이 다음 /api/generate 호출 시점에 기회적으로 청소한다 --
+    Render 무료 플랜은 상시 실행되는 워커를 별도로 둘 수 없어, 방침에도
+    "생성 후 24시간이 지나면 다음 요청 처리 시점에 삭제"로 정확히 적는다.
+    """
+    if not os.path.isdir(OUTPUT_DIR):
+        return
+    cutoff = time.time() - OUTPUT_RETENTION_SECONDS
+    for name in os.listdir(OUTPUT_DIR):
+        path = os.path.join(OUTPUT_DIR, name)
+        if not os.path.isdir(path):
+            continue
+        try:
+            if os.path.getmtime(path) < cutoff:
+                shutil.rmtree(path, ignore_errors=True)
+        except OSError:
+            continue
+
+
+# 정적 리소스(폼 스크립트/스타일시트)만 자체 도메인에서 불러오고, 인라인
+# script/style이나 외부 출처 로드가 전혀 없는 앱이라 최소한의 CSP로 XSS 표면을
+# 원천 차단할 수 있다. 나머지 헤더도 dorms-check 보안 트랙 기준(클릭재킹/MIME
+# 스니핑/리퍼러 유출/불필요한 브라우저 권한 차단)에 맞춰 전 응답에 적용한다.
+@app.after_request
+def set_security_headers(response):
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; script-src 'self'; style-src 'self'; "
+        "img-src 'self' data:; object-src 'none'; base-uri 'self'; "
+        "form-action 'self'; frame-ancestors 'none'"
+    )
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    return response
 
 
 @app.get("/health")
@@ -29,6 +73,11 @@ def health():
 @app.get("/")
 def index():
     return render_template("index.html")
+
+
+@app.get("/privacy")
+def privacy():
+    return render_template("privacy.html")
 
 
 @app.get("/api/reference")
@@ -97,6 +146,7 @@ def calendar_compute():
 def generate():
     payload = request.get_json()
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    _cleanup_old_outputs()
 
     performance_ratios = [{"type": p["type"], "ratio": p["ratio"]} for p in payload["performance_items"]]
     warnings = validate_plan(

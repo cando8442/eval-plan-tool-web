@@ -1,0 +1,10 @@
+{
+  "code.hardcoded-secret": {
+    "status": "na",
+    "evidence": ".venv/Lib/site-packages/cryptography/hazmat/primitives/serialization/ssh.py:78 — 서드파티 cryptography 라이브러리 소스의 PEM 마커 상수(_SK_START = b\"-----BEGIN OPENSSH PRIVATE KEY-----\"), 실제 키 아님. .gitignore:3에 .venv/ 등록되어 git 미추적(git ls-files 확인, 커밋 0건), render.yaml은 pip install -r requirements.txt로 자체 venv를 새로 만들어 배포하므로 이 파일 자체가 배포물에 포함되지 않음. 오탐 확인."
+  },
+  "code.dangerous-pattern": {
+    "status": "pass",
+    "evidence": "static/form.js 내 innerHTML 19건 전수 검토: 4건(werkzeug/debug/shared/debugger.js)은 .venv 벤더 코드로 배포/앱 코드 범위 밖. 앱 코드 19건 중 라이브러리 상수·개발자 통제 콘텐츠(subjects/*.json)만 삽입하던 곳은 원래도 안전. 사용자 자유입력값(과목명/작성자/수행평가명/업로드 학사일정 라벨)을 이스케이프 없이 삽입하던 실제 XSS 지점 4곳을 escapeHtml() 헬퍼로 수정: form.js renderReviewSummary()(구 763행 부근, 과목/작성자/교사명단/수행평가 항목), populateStandardsOptions() 후보없음 메시지(구 451행, subject), analyzeCalendarFile() 학사일정 후보 렌더링(구 587행, e.month/e.day/e.label/e.category — 업로드 파일에서 추출되어 여러 교사 간 공유 가능성 있음), generateRubricDraft()(구 283~305행, 수행평가명 title이 <textarea>...</textarea> innerHTML로 삽입되던 것). 서버측 doc_text_renderer.py는 이미 html.escape 기반 _esc()로 모든 사용자 입력을 이스케이프(코드 확인: 22행 _esc 정의, 모든 f-string 삽입지점에 적용)."
+  }
+}

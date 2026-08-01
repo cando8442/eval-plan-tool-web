@@ -1,0 +1,16 @@
+{
+  "app": {
+    "name": "평가계획서 자동생성 도구",
+    "url": "https://eval-plan-tool.onrender.com",
+    "stack": "Unknown / 범용"
+  },
+  "tracks": [
+    "security",
+    "edzip"
+  ],
+  "edzipCase": "A",
+  "teacher": {
+    "dormsHandle": ""
+  },
+  "ownershipConfirmed": true
+}
