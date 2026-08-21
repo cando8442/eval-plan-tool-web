@@ -546,7 +546,7 @@ function semesterMonthRange(semester) {
 // 관행적인 날짜로 미리 채워준다 — 학교마다 정확한 날짜는 다를 수 있으므로 어디까지나
 // 기본값이고, 사용자가 직접 고칠 수 있다(이미 값이 있으면 덮어쓰지 않음).
 function updateSemesterDateDefaults() {
-  const semester = form.querySelector('input[name="semester"]:checked').value;
+  const semester = form.querySelector('input[name="semester"]:checked')?.value || "1학기";
   const startInput = form.querySelector('input[name="semester_start"]');
   const endInput = form.querySelector('input[name="semester_end"]');
   const year = new Date().getFullYear();
@@ -758,12 +758,46 @@ function paneForStep(step) {
   return wizardPanes.find((el) => Number(el.dataset.step) === step);
 }
 
-function validateStep(step) {
+// 폼에 novalidate 를 걸어 브라우저의 전체-폼 네이티브 검증을 껐다(templates/index.html
+// 참고). 감춰진 단계의 빈 required 필드 때문에 submit 이벤트가 조용히 사라지던 문제를
+// 없애는 대신, 검증은 여기서 단계별로 직접 한다.
+function firstInvalidField(step) {
   const pane = paneForStep(step);
-  const requiredFields = pane.querySelectorAll("[required]");
-  for (const field of requiredFields) {
+  for (const field of pane.querySelectorAll("[required]")) {
     if (field.closest(".hidden")) continue; // 2015개정 성적산출방식 행처럼 숨겨진 필드는 검사 제외
-    if (!field.reportValidity()) return false;
+    if (!field.checkValidity()) return field;
+  }
+  return null;
+}
+
+// 문제가 있는 필드를 사용자가 실제로 볼 수 있는 상태로 만들어 준다 -- 해당 단계로
+// 이동시키고, 포커스를 준 뒤, 브라우저 말풍선과 별개로 결과 영역에도 글로 남긴다.
+// (말풍선은 감춰진 요소에는 뜨지 않기 때문에 글 안내가 반드시 함께 있어야 한다.)
+function focusInvalidField(step, field) {
+  if (currentStep !== step) showStep(step);
+  field.focus();
+  field.reportValidity();
+  const label = field.closest("tr")?.querySelector("th")?.textContent?.trim() || field.name || "필수 항목";
+  showResult(`${step}단계의 "${label}" 항목을 확인해주세요 — 필수 입력값이 비어 있거나 형식이 올바르지 않습니다.`, "err");
+}
+
+function validateStep(step) {
+  const field = firstInvalidField(step);
+  if (!field) return true;
+  focusInvalidField(step, field);
+  return false;
+}
+
+// 마지막 단계에서 "문 서 생 성"을 누를 때는 1~5단계를 모두 확인한다. 임시저장 복원
+// 등으로 앞 단계를 건너뛴 채 마지막 단계에 도착하는 경로가 있어, 현재 단계만 봐서는
+// 빈 필수값을 놓친다.
+function validateAllSteps() {
+  for (let step = 1; step <= TOTAL_STEPS; step += 1) {
+    const field = firstInvalidField(step);
+    if (field) {
+      focusInvalidField(step, field);
+      return false;
+    }
   }
   return true;
 }
@@ -836,12 +870,14 @@ function showResult(message, kind) {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!validateStep(TOTAL_STEPS)) return;
+  if (!validateAllSteps()) return;
 
-  const payload = buildPayload();
   showResult("생성 중입니다…", "");
 
   try {
+    // buildPayload() 는 예전에 try 밖에 있었다 -- 폼 구조와 어긋난 임시저장본 등으로
+    // 여기서 예외가 나면 핸들러가 통째로 중단되면서 화면에는 아무 표시도 남지 않았다.
+    const payload = buildPayload();
     const response = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1130,6 +1166,10 @@ async function loadDraftIfPresent() {
     for (let i = 0; i < itemCount; i += 1) addPerformanceItem();
 
     restoreSimpleFields(draft.simple || {});
+    // 학사일정 시작/종료일은 원래 showStep(2) 에서만 기본값이 채워진다. 임시저장본이
+    // 5단계를 가리키면 2단계를 거치지 않고 곧바로 마지막 단계로 복원되면서 이 필수
+    // 필드가 빈 채로 남았고, 그 상태로 "문 서 생 성"을 누르면 아무 반응이 없었다.
+    updateSemesterDateDefaults();
     updateGradingMethodUI();
 
     const itemWrappers = performanceContainer.querySelectorAll(".performance-item");

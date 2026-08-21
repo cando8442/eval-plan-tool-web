@@ -5,7 +5,11 @@ import tempfile
 import time
 import uuid
 
+import logging
+import traceback
+
 from flask import Flask, jsonify, render_template, request, send_from_directory
+from werkzeug.exceptions import HTTPException
 
 from calendar_parser import parse_calendar
 from content_library import list_subjects, load_subject
@@ -53,7 +57,9 @@ def _cleanup_old_outputs():
 @app.after_request
 def set_security_headers(response):
     response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; script-src 'self'; style-src 'self'; "
+        "default-src 'self'; script-src 'self'; "
+        "style-src 'self' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data:; object-src 'none'; base-uri 'self'; "
         "form-action 'self'; frame-ancestors 'none'"
     )
@@ -63,6 +69,24 @@ def set_security_headers(response):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     return response
+
+
+# 프론트엔드(static/form.js)는 모든 API 응답을 response.json()으로 읽는다 -- 기본
+# Flask 오류 페이지는 HTML이라, 서버에서 예외가 나면 브라우저 쪽에서 JSON 파싱이
+# 다시 터지면서 사용자에게는 "생성 실패: SyntaxError ..." 같은 뜻 모를 문구만
+# 남았다. /api/* 에서는 항상 message 필드를 가진 JSON 을 돌려주고, 진짜 원인은
+# 서버 로그(Render 대시보드)에 트레이스백으로 남긴다.
+@app.errorhandler(Exception)
+def handle_any_error(error):
+    status = error.code if isinstance(error, HTTPException) else 500
+    if not request.path.startswith("/api/"):
+        return error if isinstance(error, HTTPException) else ("Internal Server Error", 500)
+    if status >= 500:
+        app.logger.error("%s %s 처리 중 오류: %s", request.method, request.path, traceback.format_exc())
+        message = "서버에서 문서를 만드는 중 오류가 발생했습니다. 입력값을 확인하고 다시 시도해주세요."
+    else:
+        message = getattr(error, "description", str(error))
+    return jsonify({"message": message}), status
 
 
 @app.get("/health")
@@ -148,17 +172,20 @@ def generate():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     _cleanup_old_outputs()
 
-    performance_ratios = [{"type": p["type"], "ratio": p["ratio"]} for p in payload["performance_items"]]
+    performance_items = payload.get("performance_items") or []
+    performance_ratios = [{"type": p.get("type"), "ratio": p.get("ratio")} for p in performance_items]
+    midterm = payload.get("midterm") or {}
+    final = payload.get("final") or {}
     warnings = validate_plan(
-        grade=payload["grade"],
-        credit=payload["credit"],
-        midterm_essay_ratio=payload["midterm"]["essay"],
-        midterm_total_ratio=payload["midterm"]["ratio"],
-        final_essay_ratio=payload["final"]["essay"],
-        final_total_ratio=payload["final"]["ratio"],
+        grade=payload.get("grade"),
+        credit=payload.get("credit"),
+        midterm_essay_ratio=midterm.get("essay"),
+        midterm_total_ratio=midterm.get("ratio"),
+        final_essay_ratio=final.get("essay"),
+        final_total_ratio=final.get("ratio"),
         performance_items=performance_ratios,
-        grading_method=payload["grading_method"],
-        split_scores=payload["split_scores"],
+        grading_method=payload.get("grading_method"),
+        split_scores=payload.get("split_scores") or {},
     )
 
     # 공개 배포 환경에서는 파일명이 과목명에서만 나오면(예: "평가계획표(공통수학1).xlsx")
@@ -168,16 +195,18 @@ def generate():
     request_dir = os.path.join(OUTPUT_DIR, request_id)
     os.makedirs(request_dir, exist_ok=True)
 
-    safe_subject = payload["subject"].replace("/", "_")
+    safe_subject = (payload.get("subject") or "과목미입력").replace("/", "_")
     xlsx_filename = f"평가계획표({safe_subject}).xlsx"
     xlsx_path = os.path.join(request_dir, xlsx_filename)
 
     write_xlsx(payload, xlsx_path)
 
-    loaded_subject = load_subject(payload["revision"], payload["category"], payload["subject"])
+    loaded_subject = load_subject(
+        payload.get("revision") or "2022", payload.get("category") or "", payload.get("subject") or ""
+    )
     if loaded_subject is None:
         warnings.append(
-            f"'{payload['subject']}' 과목은 콘텐츠 라이브러리에 없습니다. "
+            f"'{payload.get('subject')}' 과목은 콘텐츠 라이브러리에 없습니다. "
             "아래 미리보기의 서술형 내용(평가목적/방향/성취수준 등)이 비어 있으니 "
             "직접 작성해주세요."
         )

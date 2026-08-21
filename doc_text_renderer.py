@@ -23,6 +23,15 @@ def _esc(value) -> str:
 
 
 def _esc_multiline(value) -> str:
+    """줄바꿈을 <br>로 바꿔 렌더한다.
+
+    성취기준/수업방법/평가방법처럼 프론트엔드가 **배열**로 보내는 값도 그대로
+    들어온다 -- 예전에는 str(list)가 그대로 이스케이프돼 문서에
+    "['[10공수1-01-01] ...', '...']" 같은 파이썬 repr 이 찍혔다. 배열은 항목마다
+    한 줄로 펼친다.
+    """
+    if isinstance(value, (list, tuple)):
+        return "<br>".join(_esc(v) for v in value if v not in (None, ""))
     return _esc(value).replace("\n", "<br>")
 
 

@@ -21,13 +21,21 @@ def validate_plan(
     final_essay_ratio = final_essay_ratio or 0
     final_total_ratio = final_total_ratio or 0
 
-    performance_ratio_sum = sum(item["ratio"] for item in performance_items)
+    # 수행평가 반영비율/학점도 미입력(None)이거나 키 자체가 없을 수 있다 -- 예전에는
+    # 여기서 TypeError/KeyError 가 나면서 /api/generate 가 통째로 500이 됐고, 프론트엔드는
+    # 그 HTML을 response.json()으로 읽다 또 터져 "생성 실패: SyntaxError"만 보였다.
+    # 검증 계산에서는 미입력을 0으로 취급한다(경고 문구로 사용자에게 알린다).
+    def _ratio_of(item: dict) -> float:
+        return item.get("ratio") or 0
+
+    performance_ratio_sum = sum(_ratio_of(item) for item in performance_items)
     essay_ratio_sum = (
         (midterm_total_ratio * midterm_essay_ratio / 100)
         + (final_total_ratio * final_essay_ratio / 100)
-        + sum(item["ratio"] for item in performance_items if item["type"] == "서논술형")
+        + sum(_ratio_of(item) for item in performance_items if item.get("type") == "서논술형")
     )
 
+    credit = credit or 0
     is_exempt = grade == 3
 
     if not is_exempt and credit <= 2 and performance_ratio_sum < 20:

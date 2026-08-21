@@ -30,10 +30,12 @@ def write_xlsx(data: dict, output_path: str, base_path: str = "templates_src/bas
             sheet[cell] = data["final"][key]
 
     for col, item in zip(PERFORMANCE_COLS, performance_items):
-        sheet[f"{col}3"] = item["type"]
-        sheet[f"{col}4"] = item["title"]
-        sheet[f"{col}5"] = item["month"]
-        sheet[f"{col}6"] = item["ratio"]
+        # 항목을 만들어두고 일부 칸만 채운 채 생성하는 경우가 흔하다 -- 없는 키에
+        # KeyError 를 내지 말고 빈 칸으로 남긴다(엑셀에서 직접 채우면 된다).
+        sheet[f"{col}3"] = item.get("type")
+        sheet[f"{col}4"] = item.get("title")
+        sheet[f"{col}5"] = item.get("month")
+        sheet[f"{col}6"] = item.get("ratio")
 
     sheet["AA6"] = data["grading_method"]
     for key, cell in SPLIT_SCORE_COLS.items():
