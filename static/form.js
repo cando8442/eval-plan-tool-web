@@ -204,6 +204,7 @@ function loadStandardsForItem(wrapper) {
     Object.values(cachedUnitsByMonth).forEach((info) => {
       if (checkedUnits.includes(info.unit)) (info.standards || []).forEach((s) => preChecked.push(s));
     });
+    container.classList.add("all-standards");
     container.innerHTML = renderAllStandardsHtml("pi-standards-opt", preChecked);
     container.querySelectorAll(".pi-standards-opt").forEach((cb) => {
       cb.checked = cb.dataset.recommended === "1";
@@ -509,9 +510,11 @@ async function populateStandardsOptions() {
       // 전체 성취기준을 가진 과목이면 매 행에 과목 전체를 펼치고, 그 달 단원의
       // 성취기준만 "권장"으로 표시해 자동 체크 대상으로 남긴다.
       if (cachedAllStandards.length > 0) {
+        container.classList.add("all-standards");
         container.innerHTML = renderAllStandardsHtml("mp-standards-opt", standards);
         return;
       }
+      container.classList.remove("all-standards");
       if (standards.length === 0) {
         container.innerHTML = `<small>'${escapeHtml(subject)}'의 ${idx + 1}번째 월에 해당하는 성취기준 후보가 없습니다 — 기타(직접입력)를 사용해주세요.</small>`;
         return;

@@ -497,6 +497,13 @@ small {
   max-height: 220px;
 }
 
+/* 과목 전체 성취기준(17~22개)을 펼치는 과목은 220px 상자 안에서 계속 스크롤해야 해서
+   고르기 어렵다 — 이때만 상자를 키워 영역 머리글과 함께 한눈에 훑을 수 있게 한다. */
+.mp-standards-options.all-standards,
+.pi-standards-options.all-standards {
+  max-height: 520px;
+}
+
 .mp-standards-unit-header {
   position: sticky;
   top: 0;
