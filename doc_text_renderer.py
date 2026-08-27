@@ -39,6 +39,12 @@ def _section(title: str, body_html: str) -> str:
     return f'<section class="doc-section"><h2>{_esc(title)}</h2>{body_html}</section>'
 
 
+def _esc_ml(value) -> str:
+    """성취수준처럼 원문 문단이 여러 줄인 값을 표 칸에 넣을 때 쓴다 — 이스케이프한 뒤
+    개행을 <br>로 바꿔, 고시 원문의 문단 구분이 표 안에서 사라지지 않게 한다."""
+    return _esc(value).replace(chr(10), "<br>")
+
+
 def _list(items) -> str:
     lis = "".join(f"<li>{_esc(item)}</li>" for item in (items or []) if item)
     return f"<ul>{lis}</ul>" if lis else "<p>(내용 없음)</p>"
@@ -99,7 +105,7 @@ def _minimum_achievement_block(subject_json: dict) -> str:
         for item in items:
             traits = item.get("최소능력수행특성") or {}
             trait_rows = "".join(
-                f"<tr><th>{label}</th><td>{_esc(traits.get(key))}</td></tr>" for label, key in trait_labels
+                f"<tr><th>{label}</th><td>{_esc_ml(traits.get(key))}</td></tr>" for label, key in trait_labels
             )
             parts.append(
                 f"<h5>{_esc(item.get('영역'))}</h5>"
@@ -122,7 +128,7 @@ def _achievement_levels_block(subject_json: dict) -> str:
         body_rows = "".join(
             "<tr>"
             + f"<th>{label}</th>"
-            + "".join(f"<td>{_esc((levels.get(g) or {}).get(key))}</td>" for g in grades)
+            + "".join(f"<td>{_esc_ml((levels.get(g) or {}).get(key))}</td>" for g in grades)
             + "</tr>"
             for label, key in trait_labels
         )
