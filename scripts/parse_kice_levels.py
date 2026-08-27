@@ -1,12 +1,3 @@
-# -*- coding: utf-8 -*-
-# 콘텐츠 라이브러리의 성취기준/성취수준을 KICE 성취수준 PDF 원문으로 채우는 추출 도구.
-# 웹앱 런타임에서는 쓰이지 않는다(오프라인 1회성). 사용법은 아래 docstring 참고.
-#
-#   python scripts/parse_kice_levels.py <성취기준별시작> <끝> <영역별시작> <끝> <out.json> [PDF경로]
-#   python scripts/apply_kice_levels.py <out.json> <과목명> [교과군]
-#
-# 과목을 추가할 때 자간 깨짐/어절 붙음 후보가 보고되면, 진짜 오류만
-# REPAIRS/PHRASE_FIXES에 명시적으로 넣을 것. 자동 교정은 원문을 훼손한다.
 """KICE「2022 개정 교육과정에 따른 고등학교 과학과 선택과목 성취수준」PDF에서
 한 과목의 '성취기준별 성취수준'과 '영역별 성취수준'을 뽑아낸다.
 
@@ -109,6 +100,25 @@ REPAIRS = {
     "접근을시도한다": "접근을 시도한다",
     "관심을가진다": "관심을 가진다",
     "흥미를가진다": "흥미를 가진다",
+    "인식할수": "인식할 수",
+    "설계할수": "설계할 수",
+    "판단할수": "판단할 수",
+    "해석할수": "해석할 수",
+    "예측하고": "예측하고",
+    "측정하고비교할수": "측정하고 비교할 수",
+    "조사하고발표할수": "조사하고 발표할 수",
+    "사례와연관지어": "사례와 연관지어",
+    "부터기후변화가수생태": "부터 기후변화가 수생태",
+    "알고이와관련된일상생활": "알고, 이와 관련된 일상생활",
+    "알고,이와관련된일상생활": "알고, 이와 관련된 일상생활",
+    "느낄수있다": "느낄 수 있다",
+    "느낄수있": "느낄 수 있",
+    "맞게시각자": "맞게 시각 자",
+    "제시하고,심층순환이밀도": "제시하고, 심층 순환이 밀도",
+    "수있음과반": "수 있음과 반",
+    "알고,양적관": "알고, 양적 관",
+    "형성되며모든": "형성되며 모든",
+    "알고,전기분": "알고, 전기분",
     "따라구분할수있고": "따라 구분할 수 있고",
     "서제시할수": "서 제시할 수",
     "제시하고발표할수": "제시하고 발표할 수",
@@ -312,7 +322,7 @@ def parse_standards(lines):
         # '...설명할 수 있다.D'처럼 다음 등급 문자가 앞 문장 끝에 붙어 나오는 판.
         # (원문에서 그 등급 칸이 비어 있을 때 이렇게 붙는다.)
         if cur_std is not None and mode in GRADES:
-            tail_m = re.match('^(.+[.가-힣])([A-E])$', line.rstrip())
+            tail_m = re.match('^(.+[.가-힣])[ ]*([A-E])$', line.rstrip())
             if tail_m and next_grade(mode) == tail_m.group(2):
                 bucket.append(tail_m.group(1))
                 flush()
@@ -358,13 +368,20 @@ def parse_area_levels(lines, area_names):
     for line in lines:
         m_area = AREA_RE.match(line)
         if m_area:
+            name = despace(m_area.group(2))
+            # 표 첫 칸에 '(1) 융합과학 / 탐구의 이해'처럼 번호까지 붙은 영역명이
+            # 줄바꿈된 채 되풀이되는 판이 있다. 현재 영역명의 조각이면 넘긴다.
+            if cur_unit and squish(name) and squish(name) in squish(cur_unit):
+                continue
             flush()
-            cur_unit = despace(m_area.group(2))
+            cur_unit = name
             cur_grade = cur_trait = None
             continue
         sq = squish(line)
         if sq in plain_names:              # 표 첫 칸에 반복되는 영역명
             continue
+        if cur_unit and sq and sq in squish(cur_unit) and len(sq) < len(squish(cur_unit)):
+            continue                       # 줄바꿈으로 쪼개진 영역명 조각
         if sq in trait_plain:
             flush()
             cur_trait = trait_plain[sq]
@@ -402,7 +419,7 @@ def parse_area_levels(lines, area_names):
                 matched = True
                 break
         # '...실천한다.E'처럼 다음 등급 문자가 앞 문장 끝에 붙어 나오는 판.
-        tail_m = re.match('^(.+[.가-힣])([A-E])$', line.rstrip())
+        tail_m = re.match('^(.+[.가-힣])[ ]*([A-E])$', line.rstrip())
         if tail_m and cur_grade and next_grade(cur_grade) == tail_m.group(2):
             bucket.append(tail_m.group(1))
             flush()
