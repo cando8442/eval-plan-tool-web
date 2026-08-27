@@ -104,13 +104,18 @@ def _minimum_achievement_block(subject_json: dict) -> str:
         trait_labels = [("지식·이해", "지식이해"), ("과정·기능", "과정기능"), ("가치·태도", "가치태도")]
         for item in items:
             traits = item.get("최소능력수행특성") or {}
-            trait_rows = "".join(
-                f"<tr><th>{label}</th><td>{_esc_ml(traits.get(key))}</td></tr>" for label, key in trait_labels
-            )
+            # 범주별 최소 능력 수행 특성은 영역별 성취수준이 있는 과목에만 존재한다.
+            trait_table = ""
+            if traits:
+                trait_rows = "".join(
+                    f"<tr><th>{label}</th><td>{_esc_ml(traits.get(key))}</td></tr>"
+                    for label, key in trait_labels
+                )
+                trait_table = f"<table class='doc-table'><tbody>{trait_rows}</tbody></table>"
             parts.append(
                 f"<h5>{_esc(item.get('영역'))}</h5>"
                 f"{_list(item.get('성취기준별성취수준E'))}"
-                f"<table class='doc-table'><tbody>{trait_rows}</tbody></table>"
+                f"{trait_table}"
             )
         body = "".join(parts)
     return f"<h4>나. 최소 성취수준 진술문</h4>{body}"
@@ -125,13 +130,23 @@ def _achievement_levels_block(subject_json: dict) -> str:
         grades = ["A", "B", "C", "D", "E"]
         header = "<tr><th>구분</th>" + "".join(f"<th>{g}</th>" for g in grades) + "</tr>"
         trait_labels = [("지식·이해", "지식이해"), ("과정·기능", "과정기능"), ("가치·태도", "가치태도")]
-        body_rows = "".join(
-            "<tr>"
-            + f"<th>{label}</th>"
-            + "".join(f"<td>{_esc_ml((levels.get(g) or {}).get(key))}</td>" for g in grades)
-            + "</tr>"
-            for label, key in trait_labels
-        )
+        # 성취수준 문서에 '영역별 성취수준' 절이 없는 과목(국어과 선택과목 등)은
+        # 범주(지식·이해/과정·기능/가치·태도) 구분이 원문에 없다. 그런 과목은
+        # 등급별 진술을 한 줄짜리 표로 그린다.
+        if any(isinstance(v, str) for v in levels.values()):
+            body_rows = (
+                "<tr><th>성취수준</th>"
+                + "".join(f"<td>{_esc_ml(levels.get(g))}</td>" for g in grades)
+                + "</tr>"
+            )
+        else:
+            body_rows = "".join(
+                "<tr>"
+                + f"<th>{label}</th>"
+                + "".join(f"<td>{_esc_ml((levels.get(g) or {}).get(key))}</td>" for g in grades)
+                + "</tr>"
+                for label, key in trait_labels
+            )
         body = f"<table class='doc-table'><thead>{header}</thead><tbody>{body_rows}</tbody></table>"
     return f"<h4>가. 학기 단위 성취수준</h4>{body}"
 

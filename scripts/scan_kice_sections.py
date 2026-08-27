@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """KICE 성취수준 PDF에서 과목별 '성취기준별 성취수준'/'영역별 성취수준' 쪽 범위를 찾는다.
 
 각 과목 절은 항상 1 성취기준별 성취수준 -> 2 영역별 성취수준 -> 3 예시 평가 도구
@@ -12,7 +11,7 @@ import io, json, re, sys
 # 표지 문구에 띄어쓰기 흔들림이 있다(예: 여행지리는 '3 예시 평가도구').
 MARKS = [(re.compile(r'1\s*성취기준별\s*성취수준'), 'std'),
          (re.compile(r'2\s*영역별\s*성취수준'), 'area'),
-         (re.compile(r'3\s*예시\s*평가\s*도구'), 'tool')]
+         (re.compile(r'[23]\s*예시\s*평가\s*도구'), 'tool')]
 TITLE_RE = re.compile(r'^[Ⅰ-ⅿXIV]+\s*(.+?)\s*성취수준$')
 CODE_RE = re.compile(r'\[(?:10|12)([가-힣]{2,3})\d')
 
@@ -47,13 +46,15 @@ def main():
         limit = starts[idx + 1][0] if idx + 1 < len(starts) else len(r.pages) + 1
         area = [p for p, k, _ in marks if p_std <= p < limit and 'area' in k]
         tool = [p for p, k, _ in marks if p_std <= p < limit and 'tool' in k]
-        if not area or not tool:
-            print('  [건너뜀] %d쪽 - 영역별/예시 표지를 못 찾음' % p_std)
+        if not tool:
+            print('  [건너뜀] %d쪽 - 예시 평가 도구 표지를 못 찾음' % p_std)
             continue
+        # 국어과 선택과목처럼 '2 영역별 성취수준' 절이 아예 없는 과목이 있다.
+        # 그때는 성취기준별 절이 예시 평가 도구 직전까지 이어지고 area는 비운다.
         sections.append({
             'subject': subject_from_page(text),
-            'std': [p_std, area[0] - 1],
-            'area': [area[0], tool[0] - 1],
+            'std': [p_std, (area[0] if area else tool[0]) - 1],
+            'area': [area[0], tool[0] - 1] if area else [],
         })
 
     with io.open(out, 'w', encoding='utf-8', newline='\n') as f:
@@ -61,7 +62,8 @@ def main():
 
     print(pdf, '->', out, '(%d쪽, %d과목)' % (len(r.pages), len(sections)))
     for s in sections:
-        print('  %-28s 성취기준별 %s  영역별 %s' % (s['subject'], s['std'], s['area']))
+        print('  %-28s 성취기준별 %s  영역별 %s'
+              % (s['subject'], s['std'], s['area'] or '(없음)'))
 
 
 if __name__ == '__main__':
