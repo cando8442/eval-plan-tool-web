@@ -233,5 +233,10 @@
     "C/D": 37,
     "D/E": 36,
     "E/I": 35
+  },
+  "standards_source": {
+    "verified": true,
+    "document": "교육부 고시 제2022-33호 [별책 5] 국어과 교육과정",
+    "standards_count": 7
   }
 }

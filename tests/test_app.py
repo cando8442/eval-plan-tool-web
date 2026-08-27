@@ -122,7 +122,11 @@ def test_generate_endpoint_creates_xlsx_and_doc_preview(tmp_path, monkeypatch):
     data = resp.get_json()
     relative_path = data["xlsx_download_url"].removeprefix("/api/download/")
     assert os.path.isfile(os.path.join(str(tmp_path), *relative_path.split("/")))
-    assert data["warnings"] == []
+    # 이 계획은 반영비율·성취기준 점수가 모두 규정에 맞으므로 검증 경고가 없어야 한다.
+    # 다만 '공통수학1'은 아직 교육과정 원문 대조를 거치지 않은 과목이라 출처 안내가
+    # 하나 붙는데, 그건 계획이 잘못됐다는 뜻이 아니므로 여기서 걸러낸다.
+    validation_warnings = [w for w in data["warnings"] if "대조되지 않은" not in w]
+    assert validation_warnings == []
     assert "단원별 핵심 개념 구조화를 통해 단계별 문제 해결하기" in data["doc_html"]
     assert data["xlsx_download_url"].endswith(f"/{data['xlsx_filename']}")
 

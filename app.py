@@ -104,6 +104,22 @@ def privacy():
     return render_template("privacy.html")
 
 
+def unverified_standards_warnings(subject_json: dict, subject_name: str) -> list[str]:
+    """성취기준이 원문 대조를 거치지 않은 과목이면 경고 문구를 돌려준다.
+
+    subjects/*.json 의 standards_source.verified 가 True 인 과목만 고시문 원문과
+    한 글자씩 대조한 것이다. 필드가 아예 없는 과목도 검증 안 된 것으로 본다.
+    """
+    source = subject_json.get("standards_source") or {}
+    if source.get("verified") is True:
+        return []
+    return [
+        f"'{subject_name}' 과목의 성취기준은 교육과정 원문과 대조되지 않은 재구성 초안입니다. "
+        "성취기준 문구·개수·코드가 실제 교육부 고시와 다를 수 있으니, 제출 전에 "
+        "국가교육과정정보센터(ncic.re.kr)의 해당 교과 교육과정 원문과 반드시 대조해주세요."
+    ]
+
+
 @app.get("/api/reference")
 def reference():
     """
@@ -116,7 +132,13 @@ def reference():
     subject = request.args.get("subject", "")
     loaded_subject = load_subject(revision, category, subject) if subject and category else None
     units_by_month = (loaded_subject or {}).get("units_by_month", {})
-    return jsonify({"units_by_month": units_by_month})
+    # 성취기준을 고르는 화면이야말로 "이 성취기준을 믿어도 되는가"를 알려줄 자리다.
+    return jsonify(
+        {
+            "units_by_month": units_by_month,
+            "standards_source": (loaded_subject or {}).get("standards_source"),
+        }
+    )
 
 
 @app.get("/api/subjects")
@@ -210,6 +232,11 @@ def generate():
             "아래 미리보기의 서술형 내용(평가목적/방향/성취수준 등)이 비어 있으니 "
             "직접 작성해주세요."
         )
+    else:
+        # 진짜 위험한 경우는 "과목이 없는 것"이 아니라 "과목은 있는데 성취기준이
+        # 원문 대조를 못 거친 재구성본인 것"이다. 예전에는 이걸 아무도 알려주지 않아
+        # 지어낸 성취기준이 그대로 제출될 뻔했다.
+        warnings.extend(unverified_standards_warnings(loaded_subject, payload.get("subject")))
     subject_json = loaded_subject or {}
     doc_html = render_plan_html(payload, subject_json)
 

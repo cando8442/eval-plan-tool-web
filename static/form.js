@@ -439,6 +439,28 @@ function collectMonthlyPlan() {
 // 채운다 — fillMonthlyPlanFromSchedule()의 단원명 자동채움과 같은 위치 매칭 규칙이라,
 // 실제 학사일정이 어떤 달에서 시작하든(예: 8월) 그 행에 해당하는 단원의 성취기준만
 // 뜨고, 학사일정 분석 후에는 그 행의 성취기준 체크박스가 전부 자동 체크된다.
+// 성취기준이 교육과정 원문과 대조된 것인지 알려준다. 이 배너가 없던 동안에는 재구성된
+// 초안 성취기준이 검증된 것처럼 보여서, 교사가 그대로 제출할 뻔했다.
+function renderStandardsSourceNotice(source, subject) {
+  const box = document.getElementById("standards-source-notice");
+  if (!box) return;
+  if (!source) {
+    box.hidden = true;
+    box.textContent = "";
+    return;
+  }
+  box.hidden = false;
+  if (source.verified) {
+    box.className = "standards-source-notice verified";
+    box.textContent = `✔ '${subject}'의 성취기준 ${source.standards_count}개는 ${source.document} 원문과 대조된 것입니다.`;
+  } else {
+    box.className = "standards-source-notice unverified";
+    box.textContent =
+      `⚠ '${subject}'의 성취기준은 교육과정 원문과 대조되지 않은 재구성 초안입니다. ` +
+      `문구·개수·코드가 실제 고시와 다를 수 있으니 제출 전 국가교육과정정보센터(ncic.re.kr) 원문과 대조해주세요.`;
+  }
+}
+
 async function populateStandardsOptions() {
   const subject = form.querySelector('input[name="subject"]').value.trim();
   const revision = form.querySelector('input[name="revision"]:checked').value;
@@ -452,6 +474,7 @@ async function populateStandardsOptions() {
     );
     const body = await resp.json();
     cachedUnitsByMonth = body.units_by_month || {};
+    renderStandardsSourceNotice(body.standards_source, subject);
     const libraryMonths = Object.keys(cachedUnitsByMonth)
       .map(Number)
       .sort((a, b) => a - b);
