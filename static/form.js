@@ -33,6 +33,10 @@ const MAX_PERFORMANCE_ITEMS = 5;
 const DEFAULT_PERFORMANCE_ITEMS = 4;
 let performanceItemCount = 0;
 const MAX_MONTHLY_ROWS = 5;
+// 과목 전체 성취기준(영역별 그룹). 콘텐츠 라이브러리에 all_standards가 있는 과목
+// (생명과학/생물의 유전/세포와 물질대사)에서만 채워지고, 이때는 월별 행·수행평가
+// 카드에서 그 달 단원 것만이 아니라 과목 전체 성취기준을 체크박스로 펼쳐 보여준다.
+let cachedAllStandards = [];
 
 // populateStandardsOptions()가 채워두는 과목별 units_by_month 캐시. 성취기준
 // "불러오기" 버튼이 재조회 없이 바로 필터링해 쓸 수 있도록 모듈 전역에 저장한다.
@@ -193,6 +197,19 @@ function renderPerformanceUnitOptions(wrapper) {
 function loadStandardsForItem(wrapper) {
   const checkedUnits = Array.from(wrapper.querySelectorAll(".pi-unit-opt:checked")).map((cb) => cb.value);
   const container = wrapper.querySelector(".pi-standards-options");
+  // 전체 성취기준을 가진 과목은 단원 체크 없이도 과목 전체를 펼쳐준다 — 체크한
+  // 단원이 있으면 그 단원 성취기준만 미리 체크된 상태로 시작한다.
+  if (cachedAllStandards.length > 0) {
+    const preChecked = [];
+    Object.values(cachedUnitsByMonth).forEach((info) => {
+      if (checkedUnits.includes(info.unit)) (info.standards || []).forEach((s) => preChecked.push(s));
+    });
+    container.innerHTML = renderAllStandardsHtml("pi-standards-opt", preChecked);
+    container.querySelectorAll(".pi-standards-opt").forEach((cb) => {
+      cb.checked = cb.dataset.recommended === "1";
+    });
+    return;
+  }
   if (checkedUnits.length === 0) {
     container.innerHTML = `<small>먼저 위에서 단원명을 하나 이상 체크해주세요.</small>`;
     return;
@@ -374,6 +391,33 @@ function renderCheckboxOptions(className, options) {
     .join("");
 }
 
+// 성취기준 목록을 "[코드] 본문" 형태로 쪼개 체크박스 한 줄로 만든다.
+// recommended에 들어있는 성취기준은 data-recommended="1"이 붙어, 학사일정 분석 후
+// 자동 체크 대상이 된다(전체 목록을 펼치는 과목에서 17개가 통째로 체크되는 걸 막는다).
+function renderStandardCheckboxes(className, standards, recommended) {
+  const rec = new Set(recommended || []);
+  return standards
+    .map((s) => {
+      const match = s.match(/^(\[[^\]]+\])\s*(.*)$/s);
+      const code = match ? match[1] : "";
+      const text = match ? match[2] : s;
+      const flag = rec.has(s) ? ' data-recommended="1"' : "";
+      return `<label class="mp-standards-row"><input type="checkbox" class="${className}" value="${s.replace(/"/g, "&quot;")}"${flag}><span class="mp-standards-text"><span class="mp-standards-code">${code}</span>${text}</span></label>`;
+    })
+    .join("");
+}
+
+// 과목 전체 성취기준을 영역 머리글과 함께 펼친다(all_standards가 있는 과목 전용).
+function renderAllStandardsHtml(className, recommended) {
+  return cachedAllStandards
+    .map(
+      (g) =>
+        `<div class="mp-standards-unit-header">${escapeHtml(g.unit)}</div>` +
+        renderStandardCheckboxes(className, g.standards || [], recommended)
+    )
+    .join("");
+}
+
 function renderMonthlyPlanRows() {
   for (let i = 1; i <= MAX_MONTHLY_ROWS; i += 1) {
     const wrapper = document.createElement("div");
@@ -452,6 +496,7 @@ async function populateStandardsOptions() {
     );
     const body = await resp.json();
     cachedUnitsByMonth = body.units_by_month || {};
+    cachedAllStandards = body.all_standards || [];
     const libraryMonths = Object.keys(cachedUnitsByMonth)
       .map(Number)
       .sort((a, b) => a - b);
@@ -461,20 +506,19 @@ async function populateStandardsOptions() {
       const libMonth = libraryMonths[idx];
       const info = libMonth !== undefined ? cachedUnitsByMonth[libMonth] || cachedUnitsByMonth[String(libMonth)] : null;
       const standards = info && info.standards ? info.standards : [];
+      // 전체 성취기준을 가진 과목이면 매 행에 과목 전체를 펼치고, 그 달 단원의
+      // 성취기준만 "권장"으로 표시해 자동 체크 대상으로 남긴다.
+      if (cachedAllStandards.length > 0) {
+        container.innerHTML = renderAllStandardsHtml("mp-standards-opt", standards);
+        return;
+      }
       if (standards.length === 0) {
         container.innerHTML = `<small>'${escapeHtml(subject)}'의 ${idx + 1}번째 월에 해당하는 성취기준 후보가 없습니다 — 기타(직접입력)를 사용해주세요.</small>`;
         return;
       }
       container.innerHTML =
-        `<div class="mp-standards-unit-header">${info.unit}</div>` +
-        standards
-          .map((s) => {
-            const match = s.match(/^(\[[^\]]+\])\s*(.*)$/s);
-            const code = match ? match[1] : "";
-            const text = match ? match[2] : s;
-            return `<label class="mp-standards-row"><input type="checkbox" class="mp-standards-opt" value="${s.replace(/"/g, "&quot;")}"><span class="mp-standards-text"><span class="mp-standards-code">${code}</span>${text}</span></label>`;
-          })
-          .join("");
+        `<div class="mp-standards-unit-header">${escapeHtml(info.unit)}</div>` +
+        renderStandardCheckboxes("mp-standards-opt", standards, standards);
     });
 
     // 수행평가 항목 카드의 단원명 체크박스도 같은 데이터로 갱신한다.
@@ -525,8 +569,9 @@ function fillMonthlyPlanFromSchedule(monthlySessions, startMonth) {
     }
     // populateStandardsOptions()가 이미 이 행에 해당 단원의 성취기준만 채워둔
     // 상태이므로, 전부 자동 체크해준다(불필요하면 교사가 직접 해제하면 됨).
+    const onlyRecommended = cachedAllStandards.length > 0;
     row.querySelectorAll(".mp-standards-opt").forEach((cb) => {
-      cb.checked = true;
+      cb.checked = onlyRecommended ? cb.dataset.recommended === "1" : true;
     });
   });
 }

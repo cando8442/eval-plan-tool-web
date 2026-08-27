@@ -116,7 +116,11 @@ def reference():
     subject = request.args.get("subject", "")
     loaded_subject = load_subject(revision, category, subject) if subject and category else None
     units_by_month = (loaded_subject or {}).get("units_by_month", {})
-    return jsonify({"units_by_month": units_by_month})
+    # 일부 과목(생명과학/생물의 유전/세포와 물질대사)은 고시 성취기준 전문을 영역별로
+    # 담은 all_standards를 함께 갖고 있다. 이게 있으면 프론트엔드는 월별 행마다 그 달
+    # 단원의 성취기준만 보여주는 대신 과목 전체 목록을 체크박스로 펼쳐준다.
+    all_standards = (loaded_subject or {}).get("all_standards", [])
+    return jsonify({"units_by_month": units_by_month, "all_standards": all_standards})
 
 
 @app.get("/api/subjects")
